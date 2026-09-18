@@ -1,0 +1,429 @@
+// Schema Prisma — Na Escuta (gestão de produtora de eventos, offline-first)
+// Convenção: toda entidade operacional sincronizável tem version/createdAt/updatedAt/
+// createdBy/updatedBy/deletedAt (tombstone). Nunca fazemos delete físico imediato
+// dessas entidades — a exclusão é marcada em deletedAt e propagada via sync.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Identidade, empresas (tenants) e permissões
+// ---------------------------------------------------------------------------
+
+enum CompanyRole {
+  OWNER
+  ADMIN
+  PRODUCER
+  STAFF
+  FREELANCER
+  VIEWER
+}
+
+enum EventRole {
+  MANAGER
+  FIELD_STAFF
+  VIEWER
+}
+
+enum AccessStatus {
+  ACTIVE
+  REVOKED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships Membership[]
+  eventAccess EventAccess[]
+  devices     Device[]
+
+  @@map("users")
+}
+
+model Company {
+  id                String   @id @default(uuid())
+  name              String
+  slug              String   @unique
+  offlineAccessDays Int      @default(7)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  memberships Membership[]
+  events      Event[]
+
+  @@map("companies")
+}
+
+model Membership {
+  id        String       @id @default(uuid())
+  userId    String
+  companyId String
+  role      CompanyRole
+  status    AccessStatus @default(ACTIVE)
+  revokedAt DateTime?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([userId, companyId])
+  @@index([companyId])
+  @@map("memberships")
+}
+
+model EventAccess {
+  id        String       @id @default(uuid())
+  userId    String
+  eventId   String
+  role      EventRole
+  status    AccessStatus @default(ACTIVE)
+  grantedBy String?
+  grantedAt DateTime     @default(now())
+  revokedAt DateTime?
+
+  user  User  @relation(fields: [userId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
+
+  @@unique([userId, eventId])
+  @@index([eventId])
+  @@map("event_access")
+}
+
+model Device {
+  id                     String    @id @default(uuid())
+  userId                 String
+  companyId              String
+  label                  String?
+  lastSeenAt             DateTime  @default(now())
+  offlineTokenIssuedAt   DateTime?
+  offlineTokenExpiresAt  DateTime?
+  revokedAt              DateTime?
+  createdAt              DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("devices")
+}
+
+// ---------------------------------------------------------------------------
+// Domínio operacional (fatia atual): Eventos, Tarefas, Checklists, Ocorrências
+// ---------------------------------------------------------------------------
+
+model Event {
+  id          String    @id @default(uuid())
+  companyId   String
+  name        String
+  description String?
+  location    String?
+  startDate   DateTime
+  endDate     DateTime
+  status      String    @default("PLANNED")
+
+  version   Int       @default(1)
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  company     Company             @relation(fields: [companyId], references: [id])
+  eventAccess EventAccess[]
+  tasks       Task[]
+  checklists  ChecklistTemplate[]
+  occurrences Occurrence[]
+
+  @@index([companyId, updatedAt])
+  @@map("events")
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  BLOCKED
+}
+
+model Task {
+  id               String     @id @default(uuid())
+  eventId          String
+  companyId        String
+  title            String
+  description      String?
+  status           TaskStatus @default(TODO)
+  priority         Int        @default(0)
+  dueAt            DateTime?
+  assignedToUserId String?
+
+  version   Int       @default(1)
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  event Event @relation(fields: [eventId], references: [id])
+
+  @@index([eventId, updatedAt])
+  @@index([companyId])
+  @@map("tasks")
+}
+
+model ChecklistTemplate {
+  id          String  @id @default(uuid())
+  companyId   String
+  eventId     String
+  title       String
+  description String?
+
+  version   Int       @default(1)
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  event Event           @relation(fields: [eventId], references: [id])
+  items ChecklistItem[]
+
+  @@index([eventId, updatedAt])
+  @@map("checklist_templates")
+}
+
+enum ChecklistItemStatus {
+  PENDING
+  DONE
+  NOT_APPLICABLE
+}
+
+model ChecklistItem {
+  id           String              @id @default(uuid())
+  checklistId  String
+  eventId      String
+  companyId    String
+  label        String
+  order        Int                 @default(0)
+  isRequired   Boolean             @default(false)
+  status       ChecklistItemStatus @default(PENDING)
+  doneAt       DateTime?
+  doneByUserId String?
+
+  version   Int       @default(1)
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  checklist ChecklistTemplate @relation(fields: [checklistId], references: [id])
+
+  @@index([checklistId, updatedAt])
+  @@index([eventId])
+  @@map("checklist_items")
+}
+
+enum OccurrenceSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum OccurrenceStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model Occurrence {
+  id               String             @id @default(uuid())
+  eventId          String
+  companyId        String
+  title            String
+  description      String?
+  category         String?
+  severity         OccurrenceSeverity @default(LOW)
+  status           OccurrenceStatus   @default(OPEN)
+  occurredAt       DateTime
+  reportedByUserId String?
+  assignedToUserId String?
+  resolutionNotes  String?
+
+  version   Int       @default(1)
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  event    Event                @relation(fields: [eventId], references: [id])
+  evidence OccurrenceEvidence[]
+
+  @@index([eventId, updatedAt])
+  @@map("occurrences")
+}
+
+enum EvidenceKind {
+  PHOTO
+  DOCUMENT
+  AUDIO
+}
+
+model OccurrenceEvidence {
+  id             String       @id @default(uuid())
+  occurrenceId   String
+  eventId        String
+  companyId      String
+  kind           EvidenceKind @default(PHOTO)
+  fileName       String
+  mimeType       String
+  sizeBytes      Int
+  storageKey     String?
+  checksumSha256 String
+  capturedAt     DateTime
+  uploadedAt     DateTime?
+
+  version   Int       @default(1)
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  occurrence Occurrence @relation(fields: [occurrenceId], references: [id])
+
+  @@index([occurrenceId, updatedAt])
+  @@map("occurrence_evidence")
+}
+
+// ---------------------------------------------------------------------------
+// Sincronização, conflitos e auditoria
+// ---------------------------------------------------------------------------
+
+enum SyncOutcome {
+  APPLIED
+  CONFLICT
+  REJECTED
+  DUPLICATE_IGNORED
+}
+
+// Log server-side de cada operação de push recebida. A chave primária é o
+// operationId gerado no cliente: garante idempotência (reenvio = DUPLICATE_IGNORED).
+model SyncOutboxLog {
+  id            String      @id
+  companyId     String
+  eventId       String
+  userId        String
+  deviceId      String
+  entityType    String
+  entityId      String
+  operationType String
+  outcome       SyncOutcome
+  resultVersion Int?
+  errorMessage  String?
+  receivedAt    DateTime    @default(now())
+  appliedAt     DateTime?
+
+  @@index([companyId, receivedAt])
+  @@index([entityType, entityId])
+  @@map("sync_outbox_log")
+}
+
+enum ConflictStatus {
+  PENDING
+  RESOLVED
+}
+
+enum ConflictResolutionStrategy {
+  KEEP_SERVER
+  KEEP_CLIENT
+  MERGED
+}
+
+// Conflito é entidade própria (não campo dentro da entidade principal):
+// permite múltiplos conflitos históricos por entidade e uma tela cross-entity
+// de conflitos pendentes sem precisar unir tabelas heterogêneas.
+model Conflict {
+  id                 String                       @id @default(uuid())
+  entityType         String
+  entityId           String
+  companyId          String
+  eventId            String
+  baseVersion        Int
+  serverVersion      Int
+  clientPayload      Json
+  serverPayload      Json
+  deviceId           String
+  operationId        String
+  status             ConflictStatus               @default(PENDING)
+  resolutionStrategy ConflictResolutionStrategy?
+  resolvedBy         String?
+  resolvedAt         DateTime?
+  resolutionNotes    String?
+  detectedAt         DateTime                     @default(now())
+
+  @@index([status, companyId])
+  @@index([entityType, entityId])
+  @@map("conflicts")
+}
+
+// Log de auditoria genérico, reutilizado por todos os módulos (atuais e futuros).
+model AuditLog {
+  id         String   @id @default(uuid())
+  companyId  String
+  eventId    String?
+  userId     String?
+  entityType String
+  entityId   String
+  action     String
+  beforeJson Json?
+  afterJson  Json?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([companyId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_log")
+}
+
+enum PendingApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Padrão genérico "proposta pendente" — usado por módulos sensíveis futuros
+// (financeiro, contratos, estoque, aprovações). Schema já existe para evitar
+// retrabalho estrutural; não é usado pelo domínio implementado nesta fatia.
+model PendingApproval {
+  id                 String                 @id @default(uuid())
+  companyId          String
+  eventId            String
+  entityType         String
+  entityId           String
+  proposedChangeJson Json
+  submittedByUserId  String
+  submittedAt        DateTime               @default(now())
+  status             PendingApprovalStatus  @default(PENDING)
+  reviewedByUserId   String?
+  reviewedAt         DateTime?
+  reviewNotes        String?
+  syncOperationId    String?
+
+  @@index([companyId, status])
+  @@map("pending_approvals")
+}
