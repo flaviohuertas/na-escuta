@@ -1,5 +1,6 @@
 import type { AppDatabase } from "@/lib/db/dexie/schema";
 import { applyPullResponse, pullChanges } from "./engine";
+import { eventFromSnapshot } from "./event-local";
 import { BootstrapResponseSchema, type BootstrapResponse } from "./protocol";
 import type { WarmRoutesResult } from "@/lib/offline/warm-routes";
 
@@ -89,23 +90,7 @@ export async function prepareEventForOffline(
   const expectedTotal = Object.values(parsed.manifest.counts).reduce((sum, n) => sum + n, 0);
 
   await db.transaction("rw", db.events, async () => {
-    await db.events.put({
-      id: parsed.event.id,
-      companyId: parsed.event.companyId,
-      name: parsed.event.name,
-      description: parsed.event.description,
-      location: parsed.event.location,
-      startDate: parsed.event.startDate,
-      endDate: parsed.event.endDate,
-      status: parsed.event.status,
-      version: parsed.event.version,
-      syncStatus: "synced",
-      createdAt: parsed.event.updatedAt,
-      updatedAt: parsed.event.updatedAt,
-      deletedAt: null,
-      createdBy: null,
-      updatedBy: null,
-    });
+    await db.events.put(eventFromSnapshot(parsed.event, await db.events.get(eventId)));
   });
 
   let downloaded = 1; // Event já contabilizado

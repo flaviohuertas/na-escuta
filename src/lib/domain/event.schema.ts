@@ -11,17 +11,34 @@ export const EventStatusValues = [
 export const EventStatusSchema = z.enum(EventStatusValues);
 export type EventStatus = z.infer<typeof EventStatusSchema>;
 
-export const EventInputSchema = z.object({
+const EventFieldsSchema = z.object({
   name: z.string().trim().min(1, "Informe o nome do evento").max(200),
   description: z.string().trim().max(4000).optional().nullable(),
   location: z.string().trim().max(300).optional().nullable(),
-  startDate: z.string().datetime(),
-  endDate: z.string().datetime(),
+  startDate: z.string().datetime({ message: "Informe a data de início" }),
+  endDate: z.string().datetime({ message: "Informe a data de término" }),
   status: EventStatusSchema.default("PLANNED"),
-}).refine((data) => new Date(data.endDate) >= new Date(data.startDate), {
-  message: "A data de término não pode ser anterior à data de início",
-  path: ["endDate"],
 });
+
+const endNotBeforeStart = {
+  check: (data: { startDate: string; endDate: string }) =>
+    new Date(data.endDate) >= new Date(data.startDate),
+  options: {
+    message: "A data de término não pode ser anterior à data de início",
+    path: ["endDate"],
+  },
+};
+
+export const EventInputSchema = EventFieldsSchema.refine(endNotBeforeStart.check, endNotBeforeStart.options);
+
+/**
+ * Edição de um evento existente. `baseVersion` é a versão que a pessoa estava vendo ao abrir o
+ * formulário: se o evento mudou nesse meio-tempo, o servidor recusa (409) em vez de sobrescrever
+ * em silêncio a edição de outra pessoa.
+ */
+export const EventUpdateInputSchema = EventFieldsSchema.extend({
+  baseVersion: z.number().int().positive(),
+}).refine(endNotBeforeStart.check, endNotBeforeStart.options);
 
 export const EventEntitySchema = z.object({
   id: uuid(),
@@ -36,4 +53,5 @@ export const EventEntitySchema = z.object({
 
 export type EventInput = z.input<typeof EventInputSchema>;
 export type EventParsed = z.infer<typeof EventInputSchema>;
+export type EventUpdateParsed = z.infer<typeof EventUpdateInputSchema>;
 export type EventEntity = z.infer<typeof EventEntitySchema>;

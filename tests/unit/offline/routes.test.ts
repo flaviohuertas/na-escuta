@@ -11,8 +11,22 @@ describe("offline/routes", () => {
   it("guarda só telas do evento e as configurações de sincronização", () => {
     expect(isOfflineCacheablePath("/eventos/abc")).toBe(true);
     expect(isOfflineCacheablePath("/eventos/abc/tarefas")).toBe(true);
-    expect(isOfflineCacheablePath("/eventos/abc/checklists/xyz")).toBe(true);
+    expect(isOfflineCacheablePath("/eventos/abc/ocorrencias")).toBe(true);
+    expect(isOfflineCacheablePath("/eventos/abc/checklists/detalhe")).toBe(true);
+    expect(isOfflineCacheablePath("/eventos/abc/ocorrencias/detalhe")).toBe(true);
     expect(isOfflineCacheablePath("/configuracoes/sincronizacao")).toBe(true);
+  });
+
+  it("NÃO guarda telas de gestão do evento: criar, editar, acessos e as URLs antigas de detalhe", () => {
+    // Renderizadas no servidor e só úteis com conexão: uma cópia velha enganaria.
+    expect(isOfflineCacheablePath("/eventos/novo")).toBe(false);
+    expect(isOfflineCacheablePath("/eventos/abc/editar")).toBe(false);
+    expect(isOfflineCacheablePath("/eventos/abc/acessos")).toBe(false);
+    // As URLs antigas só redirecionam para a rota fixa; guardar o redirecionamento não serve.
+    expect(isOfflineCacheablePath("/eventos/abc/checklists/xyz")).toBe(false);
+    expect(isOfflineCacheablePath("/eventos/abc/tarefas/qualquer")).toBe(false);
+    // Uma tela nova qualquer sob /eventos/ fica de fora até ser incluída de propósito.
+    expect(isOfflineCacheablePath("/eventos/abc/financeiro")).toBe(false);
   });
 
   it("nunca guarda telas que dependem do servidor, login ou API", () => {

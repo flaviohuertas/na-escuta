@@ -67,6 +67,22 @@ async function main() {
     },
   });
 
+  // Segunda pessoa, com papel RESTRITO (equipe de campo): serve para ver e testar o que quem não é
+  // gestor enxerga — não cria evento, não edita evento.
+  const fieldUser = await prisma.user.upsert({
+    where: { email: "equipe@naescuta.com.br" },
+    update: {},
+    create: { email: "equipe@naescuta.com.br", name: "Pessoa da Equipe (demo)", passwordHash },
+  });
+  await prisma.membership.upsert({
+    where: { userId_companyId: { userId: fieldUser.id, companyId: company.id } },
+    update: {},
+    create: { userId: fieldUser.id, companyId: company.id, role: "STAFF" },
+  });
+  await prisma.eventAccess.create({
+    data: { userId: fieldUser.id, eventId: event.id, role: "FIELD_STAFF", grantedBy: user.id },
+  });
+
   await prisma.task.createMany({
     data: [
       {
@@ -139,7 +155,8 @@ async function main() {
 
   console.log("Seed concluído (dados fictícios):");
   console.log(`  Empresa: ${company.name} (${company.slug})`);
-  console.log(`  Login demo: demo@naescuta.com.br / NaEscuta#2026`);
+  console.log(`  Login demo (dona, gestora do evento): demo@naescuta.com.br / NaEscuta#2026`);
+  console.log(`  Login equipe (papel restrito): equipe@naescuta.com.br / NaEscuta#2026`);
   console.log(`  Evento: ${event.name} (${event.id})`);
 
   await prisma.$disconnect();

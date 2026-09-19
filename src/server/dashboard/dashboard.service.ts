@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
+import { listAccessibleEvents } from "@/server/events/accessible-events";
 import {
-  AccessStatus,
   ChecklistItemStatus,
   OccurrenceStatus,
   TaskStatus,
@@ -38,17 +38,7 @@ const AGENDA_TASK_LIMIT = 200;
  * um dado operacional de campo que precise funcionar offline.
  */
 export async function loadDashboard(userId: string, now: Date = new Date()): Promise<DashboardData> {
-  const accessRows = await prisma.eventAccess.findMany({
-    where: {
-      userId,
-      status: AccessStatus.ACTIVE,
-      event: {
-        deletedAt: null,
-        company: { memberships: { some: { userId, status: AccessStatus.ACTIVE } } },
-      },
-    },
-    include: { event: true },
-  });
+  const accessRows = await listAccessibleEvents(userId);
 
   const events: DashboardEvent[] = accessRows.map(({ event }) => ({
     id: event.id,

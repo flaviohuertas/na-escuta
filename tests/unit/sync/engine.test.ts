@@ -243,6 +243,108 @@ describe("sync engine", () => {
       const task = await db.tasks.get("01991b1a-0000-7000-8000-000000000001");
       expect(task).toBeUndefined();
     });
+
+    describe("o evento em si (nome, datas, status) editado depois da preparação", () => {
+      const snapshot = (overrides: Record<string, unknown> = {}) => ({
+        id: eventId,
+        companyId,
+        name: "Nome novo",
+        description: "Nova descrição",
+        location: "Novo local",
+        startDate: "2026-11-01T12:00:00.000Z",
+        endDate: "2026-11-02T12:00:00.000Z",
+        status: "CANCELLED",
+        version: 2,
+        updatedAt: "2026-09-19T15:00:00.000Z",
+        ...overrides,
+      });
+
+      const pull = (event: ReturnType<typeof snapshot> | null | undefined): PullResponse => ({
+        changes: [],
+        nextCursor: "c",
+        hasMore: false,
+        serverTime: "2026-09-19T15:00:00.000Z",
+        accessRevoked: false,
+        ...(event === undefined ? {} : { event }),
+      });
+
+      async function putLocalEvent(overrides: Record<string, unknown> = {}) {
+        await getDb().events.put({
+          id: eventId,
+          companyId,
+          name: "Nome antigo",
+          description: null,
+          location: null,
+          startDate: "2026-10-01T12:00:00.000Z",
+          endDate: "2026-10-02T12:00:00.000Z",
+          status: "PLANNED",
+          version: 1,
+          syncStatus: "synced",
+          createdAt: "2026-08-01T00:00:00.000Z",
+          updatedAt: "2026-08-01T00:00:00.000Z",
+          deletedAt: null,
+          createdBy: "quem-criou",
+          updatedBy: null,
+          ...overrides,
+        });
+      }
+
+      it("espelha a edição no aparelho que já tinha o evento preparado, preservando a autoria original", async () => {
+        // Regressão: só o bootstrap levava o evento; depois disso o pull nunca mais o atualizava,
+        // então nome/datas/status editados ficavam para sempre desatualizados em campo.
+        const db = getDb();
+        await putLocalEvent();
+
+        await applyPullResponse(db, eventId, pull(snapshot()));
+
+        const local = await db.events.get(eventId);
+        expect(local).toMatchObject({
+          name: "Nome novo",
+          description: "Nova descrição",
+          location: "Novo local",
+          status: "CANCELLED",
+          version: 2,
+          syncStatus: "synced",
+          updatedAt: "2026-09-19T15:00:00.000Z",
+          createdAt: "2026-08-01T00:00:00.000Z",
+          createdBy: "quem-criou",
+        });
+      });
+
+      it("não regrava o evento quando a versão é a mesma", async () => {
+        const db = getDb();
+        await putLocalEvent({ version: 2, name: "Já estava atualizado" });
+
+        await applyPullResponse(db, eventId, pull(snapshot({ version: 2 })));
+
+        expect((await db.events.get(eventId))?.name).toBe("Já estava atualizado");
+      });
+
+      it("ignora o snapshot de OUTRO evento", async () => {
+        const db = getDb();
+        await putLocalEvent();
+
+        await applyPullResponse(
+          db,
+          eventId,
+          pull(snapshot({ id: "01991b1a-0000-7000-8000-0000000000ff", name: "Evento alheio" }))
+        );
+
+        expect((await db.events.get(eventId))?.name).toBe("Nome antigo");
+        expect(await db.events.get("01991b1a-0000-7000-8000-0000000000ff")).toBeUndefined();
+      });
+
+      it("sem `event` na resposta (ou nulo) o evento local fica intacto e o resto do pull segue", async () => {
+        const db = getDb();
+        await putLocalEvent();
+
+        await applyPullResponse(db, eventId, pull(undefined));
+        await applyPullResponse(db, eventId, pull(null));
+
+        expect((await db.events.get(eventId))?.name).toBe("Nome antigo");
+        expect((await db.syncState.get(eventId))?.cursor).toBe("c");
+      });
+    });
   });
 
   describe("applyPushResponse", () => {

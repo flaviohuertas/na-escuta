@@ -6,6 +6,7 @@ import {
   type PushRequest,
   type PushResponse,
 } from "./protocol";
+import { eventFromSnapshot } from "./event-local";
 import { computeBackoffDelayMs, recoverIncompleteOperations } from "./outbox";
 
 export class AccessRevokedError extends Error {
@@ -46,6 +47,7 @@ export async function applyPullResponse(
   await db.transaction(
     "rw",
     [
+      db.events,
       db.tasks,
       db.checklists,
       db.checklistItems,
@@ -56,6 +58,16 @@ export async function applyPullResponse(
       db.conflicts,
     ],
     async () => {
+      // O evento em si (nome, datas, status) pode ter sido editado depois da preparação. Não
+      // passa pela outbox — não se edita evento offline —, então o servidor é a única fonte e a
+      // cópia local simplesmente o espelha quando a versão difere.
+      if (parsed.event && parsed.event.id === eventId) {
+        const localEvent = await db.events.get(eventId);
+        if (!localEvent || localEvent.version !== parsed.event.version) {
+          await db.events.put(eventFromSnapshot(parsed.event, localEvent));
+        }
+      }
+
       for (const change of parsed.changes) {
         const localOps = await db.outbox.where("entityId").equals(change.entityId).toArray();
         // Nunca sobrescreve uma entidade com edição local que o servidor ainda não aceitou:

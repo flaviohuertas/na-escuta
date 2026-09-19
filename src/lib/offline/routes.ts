@@ -25,8 +25,19 @@ export const WARM_ROUTES_MESSAGE = "NA_ESCUTA_WARM_ROUTES";
 /** Prefixo dos caches de pré-cache do Serwist (assets do build, não contêm dado de usuário). */
 export const PRECACHE_NAME_PREFIX = "serwist-precache";
 
+/**
+ * LISTA EXPLÍCITA das telas do evento que funcionam sem servidor: o evento, tarefas, checklists,
+ * ocorrências e os dois detalhes (rota fixa com o id na query). Não é "tudo sob /eventos/":
+ * `/eventos/novo`, `/eventos/[id]/editar` e as telas de administração são renderizadas no servidor
+ * para quem pode usá-las, exigem conexão para salvar e não devem ficar guardadas — uma cópia
+ * velha do formulário de edição, ou de uma tela de acessos, enganaria e envelheceria dados.
+ * Tela nova sob `/eventos/` fica FORA do cache até ser incluída aqui de propósito.
+ */
+const EVENT_SCREEN_PATH =
+  /^\/eventos\/(?!novo(?:\/|$))[^/]+(?:\/(?:tarefas|checklists|ocorrencias)(?:\/detalhe)?)?$/;
+
 export function isOfflineCacheablePath(pathname: string): boolean {
-  return pathname.startsWith("/eventos/") || pathname === "/configuracoes/sincronizacao";
+  return EVENT_SCREEN_PATH.test(pathname) || pathname === "/configuracoes/sincronizacao";
 }
 
 /**

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db/prisma";
 import type { PullChange, PullResponse, SyncEntityType } from "@/lib/sync/protocol";
 import { authorizeEventAccess } from "./authorize";
 import { delegateFor } from "./entity-delegate";
+import { toEventSnapshot } from "./event-snapshot";
 
 const PER_TYPE_PAGE_SIZE = 40;
 
@@ -101,11 +102,16 @@ export async function pullChangesForEvent(
     }
   }
 
+  // Uma linha por chave primária: barato o bastante para ir em toda página. `authorizeEventAccess`
+  // acabou de confirmar que o evento existe e não foi excluído.
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+
   return {
     changes,
     nextCursor: encodeCursor(nextCursorMap),
     hasMore,
     serverTime: new Date().toISOString(),
     accessRevoked: false,
+    event: event ? toEventSnapshot(event) : null,
   };
 }

@@ -77,6 +77,25 @@ export const PushResponseSchema = z.object({
 });
 export type PushResponse = z.infer<typeof PushResponseSchema>;
 
+/**
+ * O evento em si. Não passa pela outbox (não se edita evento offline — criar/editar exige
+ * conexão), mas viaja do servidor para o aparelho: no bootstrap e em todo pull, para que uma
+ * edição feita depois da preparação (nome, datas, status) chegue a quem já preparou o evento.
+ */
+export const EventSnapshotSchema = z.object({
+  id: z.string().uuid(),
+  companyId: z.string().uuid(),
+  name: z.string(),
+  description: z.string().nullable(),
+  location: z.string().nullable(),
+  startDate: z.string().datetime(),
+  endDate: z.string().datetime(),
+  status: z.string(),
+  version: z.number().int(),
+  updatedAt: z.string().datetime(),
+});
+export type EventSnapshot = z.infer<typeof EventSnapshotSchema>;
+
 // ---------------------------------------------------------------------------
 // Pull: cliente busca mudanças incrementais desde um cursor
 // ---------------------------------------------------------------------------
@@ -104,6 +123,8 @@ export const PullResponseSchema = z.object({
   serverTime: z.string().datetime(),
   accessRevoked: z.boolean().default(false),
   revokedReason: z.string().optional(),
+  /** Estado atual do evento; ausente em respostas de acesso revogado e em servidores anteriores a este campo. */
+  event: EventSnapshotSchema.nullable().optional(),
 });
 export type PullResponse = z.infer<typeof PullResponseSchema>;
 
@@ -123,21 +144,6 @@ export const BootstrapManifestSchema = z.object({
   serverTime: z.string().datetime(),
 });
 export type BootstrapManifest = z.infer<typeof BootstrapManifestSchema>;
-
-/** Evento não é uma entidade sincronizável via outbox nesta fatia (sem edição offline), mas precisa ir junto no bootstrap como referência. */
-export const EventSnapshotSchema = z.object({
-  id: z.string().uuid(),
-  companyId: z.string().uuid(),
-  name: z.string(),
-  description: z.string().nullable(),
-  location: z.string().nullable(),
-  startDate: z.string().datetime(),
-  endDate: z.string().datetime(),
-  status: z.string(),
-  version: z.number().int(),
-  updatedAt: z.string().datetime(),
-});
-export type EventSnapshot = z.infer<typeof EventSnapshotSchema>;
 
 export const BootstrapResponseSchema = z.object({
   manifest: BootstrapManifestSchema,

@@ -12,11 +12,20 @@ export async function login(page: Page, email = DEMO_EMAIL, password = DEMO_PASS
   await page.waitForURL("/eventos");
 }
 
-/** Abre o primeiro evento listado (o seed cria exatamente um). */
-export async function openFirstEvent(page: Page) {
+/** Nome (parte) do evento que o seed cria. Outros specs criam eventos próprios, então "o primeiro da lista" não é mais o do seed. */
+export const SEED_EVENT_NAME = "Festival Na Escuta 2026";
+
+/** Abre o evento do seed pelo nome. */
+export async function openFirstEvent(page: Page, eventName = SEED_EVENT_NAME) {
   await page.goto("/eventos");
-  // Restrito ao <main>: o primeiro link da página é o logo do menu lateral (→ /eventos).
-  await page.getByRole("main").getByRole("link").first().click();
+  // Restrito ao <main> (o primeiro link da página é o logo do menu) e ao link do CARTÃO do evento:
+  // "Novo evento" e "Editar" também são links ali, mas não trazem o nome do evento no texto.
+  await page
+    .getByRole("main")
+    .locator('a[href^="/eventos/"]')
+    .filter({ hasText: eventName })
+    .first()
+    .click();
   await page.waitForURL(/\/eventos\/[^/]+$/);
   // A tela do evento renderiza "Carregando…" no servidor e só resolve depois da
   // hidratação + consulta ao Dexie. Sem esperar isso, checagens imediatas como

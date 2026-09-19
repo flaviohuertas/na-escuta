@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db/prisma";
 import type { BootstrapResponse, SyncEntityType } from "@/lib/sync/protocol";
 import { authorizeEventAccess } from "./authorize";
 import { delegateFor } from "./entity-delegate";
+import { toEventSnapshot } from "./event-snapshot";
 import { pullChangesForEvent } from "./pull.service";
 
 const COUNTED_TYPES: SyncEntityType[] = [
@@ -58,18 +59,7 @@ export async function bootstrapEvent(
       counts,
       serverTime: firstPage.serverTime,
     },
-    event: {
-      id: event.id,
-      companyId: event.companyId,
-      name: event.name,
-      description: event.description,
-      location: event.location,
-      startDate: event.startDate.toISOString(),
-      endDate: event.endDate.toISOString(),
-      status: event.status,
-      version: event.version,
-      updatedAt: event.updatedAt.toISOString(),
-    },
+    event: toEventSnapshot(event),
     changes: firstPage.changes,
   };
 }
