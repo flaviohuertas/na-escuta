@@ -62,18 +62,46 @@ export async function resolveConflict(params: ResolveConflictParams) {
 
   return prisma.$transaction(async (tx) => {
     const delegate = delegateFor(tx, entityType);
+
+    // "Reivindica" o conflito ANTES de aplicar qualquer coisa. A checagem de RESOLVED lá em cima
+    // roda fora da transação: dois dispositivos resolvendo ao mesmo tempo passavam os dois por
+    // ela e aplicavam duas vezes (versão +2, e a decisão de um sobrescrevia a do outro). O UPDATE
+    // condicional é atômico: o segundo espera o lock da linha, reavalia `status = PENDING` depois
+    // do commit do primeiro e não encontra nada. Qualquer erro adiante desfaz a reivindicação.
+    const claimed = await tx.conflict.updateMany({
+      where: { id: conflict.id, status: ConflictStatus.PENDING },
+      data: {
+        status: ConflictStatus.RESOLVED,
+        resolutionStrategy: ConflictResolutionStrategy[params.strategy],
+        resolvedBy: params.userId,
+        resolvedAt: new Date(),
+        resolutionNotes: params.resolutionNotes,
+      },
+    });
+
     const current = await delegate.findUnique({ where: { id: conflict.entityId } });
+    if (claimed.count === 0) {
+      throw new ConflictAlreadyResolvedError("Este conflito já foi resolvido.", current);
+    }
     if (!current) throw new ConflictNotFoundError("A entidade do conflito não existe mais.");
 
     let updatedEntity = current;
 
     if (params.strategy !== "KEEP_SERVER") {
       const payload =
-        params.strategy === "MERGED"
-          ? params.mergedPayload
-          : (conflict.clientPayload as Record<string, unknown>);
+        params.strategy === "MERGED" ? params.mergedPayload : asPayloadObject(conflict.clientPayload);
       if (!payload) {
-        throw new Error("MERGED exige mergedPayload.");
+        throw new InvalidConflictPayloadError(
+          params.strategy === "MERGED"
+            ? "A resolução por mescla exige o conteúdo mesclado (mergedPayload)."
+            : "Este conflito não guardou o conteúdo do dispositivo, então não há o que aplicar."
+        );
+      }
+      if (params.strategy === "KEEP_CLIENT" && isDeleteShapedPayload(payload)) {
+        throw new InvalidConflictPayloadError(
+          "Este conflito veio de uma exclusão feita no dispositivo, e aplicá-la por aqui ainda não é " +
+            "possível. Use “Manter o servidor” e, se for o caso, exclua de novo em seguida."
+        );
       }
       // O `clientPayload` guardado é o objeto LOCAL do dispositivo, cru (com `syncStatus`,
       // `createdAt` etc.). Passa pelo mesmo schema do push, que descarta o que só existe no
@@ -128,19 +156,23 @@ export async function resolveConflict(params: ResolveConflictParams) {
       });
     }
 
-    await tx.conflict.update({
-      where: { id: conflict.id },
-      data: {
-        status: ConflictStatus.RESOLVED,
-        resolutionStrategy: ConflictResolutionStrategy[params.strategy],
-        resolvedBy: params.userId,
-        resolvedAt: new Date(),
-        resolutionNotes: params.resolutionNotes,
-      },
-    });
-
     return updatedEntity;
   });
+}
+
+function asPayloadObject(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+/**
+ * O `Conflict` não guarda o tipo da operação, mas o cliente emite todo DELETE com o payload
+ * `{ id }` (ver `deleteTask`) — nenhum UPDATE/CREATE válido é só isso, pois todos exigem título.
+ */
+function isDeleteShapedPayload(payload: Record<string, unknown>): boolean {
+  const keys = Object.keys(payload);
+  return keys.length === 1 && keys[0] === "id";
 }
 
 export async function listPendingConflicts(eventId: string, userId: string) {

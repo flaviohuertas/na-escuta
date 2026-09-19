@@ -34,12 +34,14 @@ export async function applyConflictResolution(
 
       if (serverEntity) {
         // Se a pessoa continuou editando a mesma entidade depois do conflito, essas edições
-        // seguem na outbox e serão enviadas sobre a versão resolvida: não as atropela.
+        // seguem na outbox e serão enviadas sobre a versão resolvida: não as atropela. O mesmo
+        // vale para OUTRO conflito ainda aberto na entidade (`CONFLICT`): a cópia local carrega o
+        // valor dele, que a pessoa ainda não decidiu — mesma regra do pull (`applyPullResponse`).
         const remaining = await db.outbox.where("entityId").equals(conflict.entityId).toArray();
-        const hasNewerLocalEdits = remaining.some(
-          (op) => op.status === "PENDING" || op.status === "SENDING"
+        const hasUnsettledLocalEdits = remaining.some(
+          (op) => op.status === "PENDING" || op.status === "SENDING" || op.status === "CONFLICT"
         );
-        if (!hasNewerLocalEdits) {
+        if (!hasUnsettledLocalEdits) {
           const table = tableForEntity(db, conflict.entityType);
           await table.put({
             ...serverEntity,

@@ -154,6 +154,26 @@ describe("applyConflictResolution", () => {
     expect((await db.conflicts.get(conflictId))?.status).toBe("RESOLVED");
   });
 
+  it("não atropela a cópia local enquanto OUTRO conflito da mesma entidade ainda está aberto", async () => {
+    // Duas edições offline da mesma tarefa que o servidor recusou: a cópia local carrega o valor
+    // da segunda. Resolver a primeira não pode sobrescrevê-la — a segunda ainda não foi decidida.
+    const db = getDb();
+    const secondOpId = "01991b1a-0000-7000-8000-0000000000a3";
+    await db.tasks.add(task({ title: "Valor do segundo conflito" }));
+    await db.outbox.add(op());
+    await db.outbox.add(op({ id: secondOpId, payload: { title: "Valor do segundo conflito" } }));
+    await db.conflicts.add(conflict());
+
+    await applyConflictResolution(db, conflict(), serverEntity);
+
+    const local = await db.tasks.get(taskId);
+    expect(local?.title).toBe("Valor do segundo conflito");
+    expect(local?.syncStatus).toBe("conflict");
+    expect((await db.outbox.get(secondOpId))?.status).toBe("CONFLICT");
+    expect(await db.outbox.get(conflictOpId)).toBeUndefined();
+    expect((await db.conflicts.get(conflictId))?.status).toBe("RESOLVED");
+  });
+
   it("sem entidade na resposta, só limpa os marcadores e não mexe nos dados locais", async () => {
     const db = getDb();
     await db.tasks.add(task());

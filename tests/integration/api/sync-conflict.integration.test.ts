@@ -1,7 +1,6 @@
 /**
  * Testes de integração — exigem Postgres real (ver cabeçalho de
- * sync-push.integration.test.ts). NÃO executados nesta sessão de
- * desenvolvimento.
+ * sync-push.integration.test.ts).
  *
  * Simula dois dispositivos editando a mesma tarefa offline e depois
  * sincronizando em ordens diferentes — o segundo a chegar gera conflito, que
@@ -39,7 +38,10 @@ describe("conflitos entre dois dispositivos (integração — Postgres real)", (
     await prisma.$disconnect();
   });
 
-  async function setupConflict(deviceBExtraFields: Record<string, unknown> = {}) {
+  async function setupConflict(
+    deviceBExtraFields: Record<string, unknown> = {},
+    deviceBOperation: "UPDATE" | "DELETE" = "UPDATE"
+  ) {
     const company = await createTestCompany(prisma);
     const user = await createTestUser(prisma);
     await createMembership(prisma, user.id, company.id, "PRODUCER");
@@ -89,9 +91,13 @@ describe("conflitos entre dois dispositivos (integração — Postgres real)", (
       eventId: event.id,
       entityType: "Task",
       entityId: taskId,
-      operationType: "UPDATE",
+      operationType: deviceBOperation,
       baseVersion: 1,
-      payload: { eventId: event.id, title: "Editado pelo dispositivo B", ...deviceBExtraFields },
+      // Como o cliente emite: DELETE leva só `{ id }` (ver `deleteTask`).
+      payload:
+        deviceBOperation === "DELETE"
+          ? { id: taskId }
+          : { eventId: event.id, title: "Editado pelo dispositivo B", ...deviceBExtraFields },
       clientTimestamp: new Date().toISOString(),
       deviceId: "device-B",
     };
@@ -187,6 +193,64 @@ describe("conflitos entre dois dispositivos (integração — Postgres real)", (
     await expect(
       resolveConflict({ conflictId, userId: user.id, strategy: "KEEP_CLIENT" })
     ).rejects.toBeInstanceOf(ConflictAlreadyResolvedError);
+  });
+
+  it("resoluções SIMULTÂNEAS do mesmo conflito (vários dispositivos/cliques): só uma vale, nada é aplicado duas vezes", async () => {
+    // Regressão: a checagem "já resolvido" rodava fora da transação, então todos passavam por
+    // ela e aplicavam — versão subia a cada um e a decisão de um sobrescrevia a do outro.
+    const { user, conflictId, taskId } = await setupConflict();
+
+    const results = await Promise.allSettled(
+      Array.from({ length: 4 }, () => resolveConflict({ conflictId, userId: user.id, strategy: "KEEP_CLIENT" }))
+    );
+
+    const fulfilled = results.filter((r) => r.status === "fulfilled");
+    const rejected = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(3);
+    for (const r of rejected) expect(r.reason).toBeInstanceOf(ConflictAlreadyResolvedError);
+
+    const task = await prisma.task.findUniqueOrThrow({ where: { id: taskId } });
+    expect(task.version).toBe(3); // v1 → A (v2) → UMA resolução (v3)
+    expect(await prisma.auditLog.count({ where: { entityId: taskId, action: "CONFLICT_RESOLVED" } })).toBe(1);
+  });
+
+  it("MERGED sem o conteúdo mesclado é erro do cliente (422), não uma falha genérica", async () => {
+    const { user, conflictId, taskId } = await setupConflict();
+
+    await expect(
+      resolveConflict({ conflictId, userId: user.id, strategy: "MERGED" })
+    ).rejects.toBeInstanceOf(InvalidConflictPayloadError);
+
+    expect((await prisma.conflict.findUniqueOrThrow({ where: { id: conflictId } })).status).toBe("PENDING");
+    expect((await prisma.task.findUniqueOrThrow({ where: { id: taskId } })).version).toBe(2);
+  });
+
+  describe("conflito gerado por uma EXCLUSÃO no dispositivo", () => {
+    it("'Manter minha versão' explica que exclusão ainda não pode ser aplicada aqui e não escreve nada", async () => {
+      const { user, conflictId, taskId } = await setupConflict({}, "DELETE");
+
+      const error = await resolveConflict({ conflictId, userId: user.id, strategy: "KEEP_CLIENT" }).catch(
+        (e) => e
+      );
+
+      expect(error).toBeInstanceOf(InvalidConflictPayloadError);
+      expect((error as Error).message).toMatch(/exclusão/);
+      const task = await prisma.task.findUniqueOrThrow({ where: { id: taskId } });
+      expect(task.deletedAt).toBeNull();
+      expect(task.version).toBe(2);
+      expect((await prisma.conflict.findUniqueOrThrow({ where: { id: conflictId } })).status).toBe("PENDING");
+    });
+
+    it("'Manter o servidor' resolve normalmente: a tarefa segue existindo", async () => {
+      const { user, conflictId, taskId } = await setupConflict({}, "DELETE");
+
+      await resolveConflict({ conflictId, userId: user.id, strategy: "KEEP_SERVER" });
+
+      const task = await prisma.task.findUniqueOrThrow({ where: { id: taskId } });
+      expect(task.deletedAt).toBeNull();
+      expect((await prisma.conflict.findUniqueOrThrow({ where: { id: conflictId } })).status).toBe("RESOLVED");
+    });
   });
 
   it("o 'já resolvido' devolve a entidade ATUAL, para o outro dispositivo convergir em vez de ficar com o conflito preso", async () => {
