@@ -23,7 +23,12 @@ export function ChecklistDetailScreen({
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const checklist = useLiveQuery(() => getDb().checklists.get(checklistId), [checklistId]);
+  // `undefined` = ainda carregando; `null` = consulta concluída e o checklist não existe neste
+  // aparelho (`get()` de id ausente também resolve `undefined`, por isso a normalização).
+  const checklist = useLiveQuery(
+    async () => (await getDb().checklists.get(checklistId)) ?? null,
+    [checklistId]
+  );
   const items = useLiveQuery(
     async () => {
       const db = getDb();
@@ -59,12 +64,31 @@ export function ChecklistDetailScreen({
     await setChecklistItemStatus(item.id, next, ctx());
   }
 
+  if (checklist === undefined) {
+    return <p className="text-slate-500">Carregando…</p>;
+  }
+
+  if (checklist === null) {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <AppLink href={`/eventos/${eventId}/checklists`} className="text-sm text-brand-600 hover:underline">
+          ← Voltar aos checklists
+        </AppLink>
+        <h1 className="mt-2 text-xl font-semibold text-slate-900">Checklist não encontrado</h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Este checklist não existe neste aparelho. Ele pode ter sido excluído, ou o evento ainda não
+          foi preparado/sincronizado aqui.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-2xl">
       <AppLink href={`/eventos/${eventId}/checklists`} className="text-sm text-brand-600 hover:underline">
         ← Voltar aos checklists
       </AppLink>
-      <h1 className="mt-2 text-xl font-semibold text-slate-900">{checklist?.title ?? "Checklist"}</h1>
+      <h1 className="mt-2 text-xl font-semibold text-slate-900">{checklist.title}</h1>
 
       <ul className="mt-4 space-y-2">
         {items.map((item) => (

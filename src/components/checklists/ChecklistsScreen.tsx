@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { AppLink } from "@/components/ui/AppLink";
+import { checklistDetailHref } from "@/lib/offline/routes";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getDb } from "@/lib/db/dexie/db";
 import type { LocalChecklistTemplate } from "@/lib/db/dexie/schema";
@@ -112,7 +113,7 @@ export function ChecklistsScreen({
           return (
             <li key={checklist.id}>
               <AppLink
-                href={`/eventos/${eventId}/checklists/${checklist.id}`}
+                href={checklistDetailHref(eventId, checklist.id)}
                 className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white p-3 hover:border-brand-300"
               >
                 <div>

@@ -41,7 +41,12 @@ export function OccurrenceDetailScreen({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const occurrence = useLiveQuery(() => getDb().occurrences.get(occurrenceId), [occurrenceId]);
+  // `undefined` = ainda carregando; `null` = consulta concluída e a ocorrência não existe neste
+  // aparelho (`get()` de id ausente também resolve `undefined`, por isso a normalização).
+  const occurrence = useLiveQuery(
+    async () => (await getDb().occurrences.get(occurrenceId)) ?? null,
+    [occurrenceId]
+  );
   const evidence = useLiveQuery(
     async () => {
       const rows = await getDb().occurrenceEvidence.where("occurrenceId").equals(occurrenceId).toArray();
@@ -78,8 +83,23 @@ export function OccurrenceDetailScreen({
     }
   }
 
-  if (!occurrence) {
+  if (occurrence === undefined) {
     return <p className="text-slate-500">Carregando…</p>;
+  }
+
+  if (occurrence === null) {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <AppLink href={`/eventos/${eventId}/ocorrencias`} className="text-sm text-brand-600 hover:underline">
+          ← Voltar às ocorrências
+        </AppLink>
+        <h1 className="mt-2 text-xl font-semibold text-slate-900">Ocorrência não encontrada</h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Esta ocorrência não existe neste aparelho. Ela pode ter sido excluída, ou o evento ainda não
+          foi preparado/sincronizado aqui.
+        </p>
+      </div>
+    );
   }
 
   return (

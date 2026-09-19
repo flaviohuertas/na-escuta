@@ -1,20 +1,16 @@
-import { requireSession } from "@/lib/auth/require-session";
-import { OccurrenceDetailScreen } from "@/components/occurrences/OccurrenceDetailScreen";
+import { redirect } from "next/navigation";
+import { occurrenceDetailHref } from "@/lib/offline/routes";
 
-export default async function OcorrenciaDetailPage({
+/**
+ * URL antiga (`/ocorrencias/[id]`): mantida só para links já compartilhados. O detalhe vive em
+ * `/ocorrencias/detalhe?id=` porque uma rota por id não pode ser aberta offline para registros
+ * criados no aparelho (ver `occurrenceDetailHref`).
+ */
+export default async function LegacyOccurrenceDetailPage({
   params,
 }: {
   params: Promise<{ eventId: string; occurrenceId: string }>;
 }) {
   const { eventId, occurrenceId } = await params;
-  const session = await requireSession();
-
-  return (
-    <OccurrenceDetailScreen
-      eventId={eventId}
-      occurrenceId={occurrenceId}
-      userId={session.user.id}
-      companyId={session.user.companyId}
-    />
-  );
+  redirect(occurrenceDetailHref(eventId, occurrenceId));
 }

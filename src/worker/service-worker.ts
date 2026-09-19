@@ -3,6 +3,7 @@ import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig } from "serwist
 import { ExpirationPlugin, NetworkFirst, Serwist } from "serwist";
 // Import relativo (não `@/`): o SW é empacotado à parte e não passa pelo alias do tsconfig.
 import {
+  OFFLINE_FALLBACK_URL,
   OFFLINE_PAGES_CACHE_NAME,
   WARM_ROUTES_MESSAGE,
   isOfflineCacheablePath,
@@ -31,6 +32,9 @@ declare const self: ServiceWorkerGlobalScope;
  *   /login, e guardar isso no lugar da tela do evento esconderia a tela para sempre.
  * - Sem `Vary`: o Next varia por headers de RSC que a navegação e a `fetch()` de aquecimento
  *   não mandam iguais.
+ * - Sem query: o detalhe de checklist/ocorrência é uma rota fixa com `?id=` (ver
+ *   `checklistDetailHref`), então o HTML guardado de `/checklists/detalhe` serve para qualquer
+ *   id — inclusive um criado offline, cuja URL nenhum cache jamais viu.
  */
 const offlinePagesRule: RuntimeCaching = {
   matcher: ({ request, url, sameOrigin }) =>
@@ -41,7 +45,7 @@ const offlinePagesRule: RuntimeCaching = {
   handler: new NetworkFirst({
     cacheName: OFFLINE_PAGES_CACHE_NAME,
     networkTimeoutSeconds: 4,
-    matchOptions: { ignoreVary: true },
+    matchOptions: { ignoreVary: true, ignoreSearch: true },
     plugins: [
       {
         cacheWillUpdate: async ({ response }) =>
@@ -66,6 +70,14 @@ const serwist = new Serwist({
   navigationPreload: true,
   // Nossa regra vem ANTES: a primeira que casa vence.
   runtimeCaching: [offlinePagesRule, ...defaultCache],
+  // Sem rede e sem a página guardada (ex.: `/painel`, que lê o Postgres ao vivo), em vez da
+  // página de erro do navegador mostra `/offline`, que lista os eventos disponíveis no aparelho.
+  // Só para navegações (documentos): a busca de aquecimento não passa por aqui.
+  fallbacks: {
+    entries: [
+      { url: OFFLINE_FALLBACK_URL, matcher: ({ request }) => request.destination === "document" },
+    ],
+  },
 });
 
 serwist.addEventListeners();

@@ -8,7 +8,7 @@ Esta é a **primeira fatia funcional** (autenticação, isolamento por empresa/e
 
 **Painel gerencial (`/painel`) — módulo 1, parcial.** Portfólio de eventos por fase (em andamento / próximos / encerrados / cancelados), semáforo de saúde por evento com os motivos explicados (ocorrência crítica ou grave aberta, tarefa atrasada ou bloqueada, item obrigatório de checklist pendente perto do evento), KPIs agregados só sobre eventos ativos, e agenda dos próximos 14 dias (início/término de evento + prazos de tarefa, com atrasadas agrupadas no topo). Regras puras em `src/lib/domain/dashboard.ts`; consultas agregadas (`groupBy`) em `src/server/dashboard/dashboard.service.ts`; UI em `src/components/dashboard/DashboardView.tsx`. É um Server Component ao vivo, como `/eventos` — **exige conexão**, e a tela exibe o horário em que foi calculada para que um retrato antigo servido pelo cache do Service Worker fique visível. Ainda **não** tem: filtros, visão de calendário mensal, KPIs financeiros (não há módulo financeiro), nem visão de "todas as tarefas da empresa". Datas da agenda são agrupadas em `America/Sao_Paulo`, não no fuso do servidor.
 
-**O que está implementado E testado** (124 testes unitários, `npm run test`, sem depender de Postgres — usam `fake-indexeddb` para simular IndexedDB e um `caches`/Service Worker falsos; 77 deles vieram desta rodada: Painel, `EventWorkspace`, telas offline (`warm-routes`, `sw-warm`, `routes`), `AppLink`, retentativa de conectividade e conflitos — vários com regressão comprovada, ou seja, falham sem a correção; ver seção 13):
+**O que está implementado E testado** (138 testes unitários, `npm run test`, sem depender de Postgres — usam `fake-indexeddb` para simular IndexedDB e um `caches`/Service Worker falsos; 91 deles vieram das últimas rodadas: Painel, `EventWorkspace`, telas offline (`warm-routes`, `sw-warm`, `routes`), `AppLink`, detalhe por query, fallback offline, retentativa de conectividade e conflitos — vários com regressão comprovada, ou seja, falham sem a correção; ver seção 13):
 - Motor de sincronização: outbox atômica, coalescência de edições, backoff exponencial, aplicação de push/pull, detecção e preservação de conflito, recuperação de operações presas após fechar o app no meio do envio, resposta parcial do servidor, reenvio idempotente.
 - Repositórios (tarefas/checklists/ocorrências/evidências): gravação local + outbox na mesma transação Dexie, com teste explícito de rollback atômico.
 - Sessão offline: verificação de assinatura EdDSA, âncora de relógio monotônica (não é enganada só adiantando o relógio do sistema).
@@ -16,9 +16,9 @@ Esta é a **primeira fatia funcional** (autenticação, isolamento por empresa/e
 - Exportação cifrada (AES-GCM/PBKDF2) das alterações pendentes.
 - Monitoramento de quota/persistência de armazenamento.
 
-**Validado contra Postgres real e navegador real** (Postgres 18.4 via `embedded-postgres`, sem Docker; Edge, build de produção — ver seção 11): a migration inicial aplica limpa; o seed roda; os **20 testes de integração** (`npm run test:integration`) passam — push/idempotência, conflitos (detecção, resolução, 409 com entidade, autorização), isolamento entre empresas e as consultas do Painel. Os **5 specs E2E** (`tests/e2e/`) passam, e foram repetidos em 3 rodadas seguidas, inclusive com o banco acumulando dados (15/15): preparar evento, abrir e recarregar **sem rede**, criar tarefa/checklist/ocorrência offline, fechar e reabrir, reconectar sem duplicar, conflito entre dois dispositivos resolvido manualmente, sessão expirada. Login e `/painel` foram abertos no navegador (desktop e mobile). `npm run build`, `npm run lint` e `npm run typecheck` passam limpos.
+**Validado contra Postgres real e navegador real** (Postgres 18.4 via `embedded-postgres`, sem Docker; Edge, build de produção — ver seção 11): a migration inicial aplica limpa; o seed roda; os **24 testes de integração** (`npm run test:integration`) passam — push/idempotência, conflitos (detecção, resolução, 409 com entidade, autorização), isolamento entre empresas e as consultas do Painel. Os **6 specs E2E** (`tests/e2e/`) passam, e foram repetidos em 3 rodadas seguidas, inclusive com o banco acumulando dados (18/18): preparar evento, abrir e recarregar **sem rede**, criar tarefa/checklist/ocorrência offline **e abrir/recarregar o detalhe deles offline**, fallback de telas que exigem conexão, fechar e reabrir, reconectar sem duplicar, conflito entre dois dispositivos resolvido manualmente, sessão expirada. Login e `/painel` foram abertos no navegador (desktop e mobile). `npm run build`, `npm run lint` e `npm run typecheck` passam limpos.
 
-**Limites conhecidos do uso offline — leia antes de prometer "offline" a alguém** (detalhes na seção 13): (a) o detalhe de um checklist/ocorrência **criado offline** não abre offline (medido: página de erro do navegador) — o id novo não tem HTML guardado; (b) `/eventos` (catálogo), `/painel` e `/conflitos` exigem conexão e, sem ela, mostram a página de erro do navegador (não há tela de fallback); (c) offline, cada troca de tela recarrega a página (ver `AppLink`).
+**Limites conhecidos do uso offline — leia antes de prometer "offline" a alguém** (detalhes na seção 13): (a) `/eventos` (catálogo), `/painel` e `/conflitos` leem o Postgres ao vivo e exigem conexão — sem ela mostram a tela de fallback `/offline` (lista os eventos preparados no aparelho); (b) offline, cada troca de tela recarrega a página (ver `AppLink`); (c) só o **Edge com offline emulado pelo Playwright** foi testado — não há teste em aparelho real, em modo avião de verdade, nem em Safari/iOS (mais agressivo ao descartar cache e IndexedDB).
 
 ## 2. Arquitetura
 
@@ -29,6 +29,7 @@ src/generated/prisma/         Prisma Client gerado (driver adapter, não version
 
 src/app/
   (public)/login/             tela de login (Server Action + Auth.js Credentials)
+  (public)/offline/           fallback do Service Worker (PÚBLICA: é pré-carregada na instalação, sem sessão)
   (app)/                      shell autenticado — layout valida sessão e monta SyncProvider
     painel/                   Painel gerencial: portfólio, saúde e agenda (Server Component, Postgres ao vivo — exige conexão)
     eventos/                  catálogo (Server Component, busca no Postgres — exige conexão)
@@ -48,6 +49,7 @@ src/lib/
   repositories/        CRUD local — grava entidade + outbox na MESMA transação Dexie
   storage/persistence.ts  quota e persistência de armazenamento
   offline/             telas do evento sem rede: routes.ts (o que cachear), warm-routes.ts (lado da página), sw-warm.ts (lado do SW), navigate.ts
+    (rotas fixas dos detalhes — checklistDetailHref/occurrenceDetailHref — e OFFLINE_FALLBACK_URL também vivem em routes.ts)
 
 src/server/
   sync/                serviços: authorize.ts, push.service.ts, pull.service.ts, bootstrap.service.ts, conflict.service.ts, entity-schemas.ts (filtro Zod por entidade, compartilhado por push e resolução de conflito)
@@ -133,7 +135,7 @@ Revogação: `Membership`/`EventAccess` com `status REVOKED` são detectados no 
 - **Suporte offline não é idêntico em todos os navegadores** — Safari no iOS é historicamente mais agressivo ao descartar dados do IndexedDB do que Chrome/Edge; PWAs "instaladas" via "Adicionar à Tela de Início" no iOS têm comportamento de armazenamento diferente de uma aba normal do Safari.
 - Esses quatro pontos estão visíveis para o usuário final na tela `/configuracoes/sincronizacao`, não só aqui.
 - **Evidências (fotos) ficam local ao dispositivo nesta fatia** — só os metadados sincronizam (ver seção 6). Um dispositivo perdido/apagado antes de um upload de binário implementado no futuro perde o arquivo, não o registro de que ele existiu.
-- **Offline, só abrem as telas guardadas** — as 5 do evento preparado. Checklist/ocorrência **criados offline** não abrem o detalhe offline (id novo, sem HTML guardado); `/eventos` (catálogo), `/painel` e `/conflitos` exigem conexão. Ver seção 13.
+- **Offline, só abrem as telas guardadas** — as 7 do evento preparado (evento, tarefas, checklists, ocorrências, os dois detalhes e a configuração de sincronização). `/eventos` (catálogo), `/painel` e `/conflitos` exigem conexão e, sem ela, mostram a tela de fallback. Ver seção 13.
 
 ## 9. Riscos técnicos e mitigações
 
@@ -160,7 +162,7 @@ Revogação: `Membership`/`EventAccess` com `status REVOKED` são detectados no 
 | 11 (parcial) | Ocorrências e evidências (metadados) | **Implementado e testado (unitário)** |
 | 2, 3 (resto), 4–10, 12–17 | CRM/propostas, escopo/cronograma completo, orçamentos, financeiro, contratos, fornecedores, equipes, estoque, logística, credenciamento/QR, comunicação, riscos/segurança, pós-evento, relatórios, administração/integrações | **Planejados, não iniciados** — cada um reaproveita o motor de sync, o modelo de auditoria (`AuditLog`) e o padrão `PendingApproval` já existentes; nenhuma tela demonstrativa foi criada antes da funcionalidade real |
 
-Próximo passo recomendado: **fechar o último buraco do uso offline — abrir offline o detalhe de checklist/ocorrência criados offline (seção 13, item 1)** — e só então empilhar novos módulos. O restante da promessa central (trabalhar em campo sem internet) já está provado no navegador (E2E 5/5). Depois, CRM/propostas (módulo 2), na ordem do enunciado.
+Próximo passo recomendado: o uso offline está fechado no que foi possível medir; o que falta nele é **testar em aparelho real** (modo avião de verdade, Safari/iOS, dispositivo compartilhado). Fora isso, seguir para o CRM/propostas (módulo 2), na ordem do enunciado — vale começar pelo **fluxo de aprovação** (`PendingApproval`, já no schema), que orçamentos, contratos e financeiro vão reusar.
 
 ## 11. Como rodar e testar
 
@@ -198,11 +200,21 @@ Primeira vez que a pilha completa (Postgres real + build de produção + Edge) f
 - **"Manter minha versão" nunca funcionava**: o `clientPayload` guardado é o objeto local cru (com `syncStatus`…) e o Prisma recusava o campo (`Unknown argument syncStatus`). Agora passa pelo schema do push. O teste de integração antigo usava payload limpo e por isso nunca pegou (o novo usa o payload real; comprovado que reproduz o erro sem a correção).
 - **"Manter o servidor" deixava a cópia local com o valor descartado** e o selo "conflito" para sempre (a entidade do servidor não muda, então o pull nunca a traz). O 409 "já resolvido" agora devolve a entidade atual — depois de checar autorização, para não vazar dado — e o app converge com ela.
 
-**Aberto**
-1. **Detalhe de checklist/ocorrência criados offline não abre offline** (medido: página de erro do navegador). O id é gerado no cliente e a URL `/checklists/[id]` não tem HTML guardado; o Next não consegue renderizar uma rota dinâmica nova sem servidor. **Decisão de arquitetura pendente:** o desenho que resolve de forma robusta é servir o detalhe numa rota fixa com o id na query (`/checklists/detalhe?id=…`, `/ocorrencias/detalhe?id=…`) — a página é client-side e lê do Dexie, então o HTML guardado da rota fixa serve para qualquer id (com `ignoreSearch` no cache). Isso muda URLs hoje "bookmarkáveis" (`/checklists/[id]`); vale combinar antes.
-2. **`/eventos`, `/painel` e `/conflitos` sem conexão** mostram a página de erro do navegador. Falta uma tela de fallback ("esta tela precisa de internet — abra um evento preparado").
-3. `OccurrenceDetailScreen` tem uma variante menor do bug do `EventWorkspace` (id inexistente fica em "Carregando…").
-4. `KEEP_CLIENT` em conflito de uma operação `DELETE`: o `clientPayload` de um delete não carrega dados para aplicar; o comportamento não foi tratado nem testado.
-5. O editor de merge campo a campo (`MERGED`) segue sem UI.
+**Fechado em seguida (o "Aberto" da rodada anterior)**
+- **Detalhe de checklist/ocorrência criados offline não abria offline** (medido: `chrome-error://chromewebdata/`). O id é gerado no cliente e a URL `/checklists/[id]` nunca foi vista por nenhum cache; o Next não renderiza uma rota dinâmica nova sem servidor. Agora o detalhe vive numa **rota fixa com o id na query** (`/checklists/detalhe?id=…`, `/ocorrencias/detalhe?id=…`): a tela é client-side e lê do IndexedDB, então o HTML guardado da rota fixa serve para qualquer id (o Service Worker casa **ignorando a query**). Medido de novo com o mesmo script: a tela abre, aceita item novo e sobrevive a reload sem rede (coberto no spec `offline-crud`). As URLs antigas (`/checklists/[id]`) **continuam funcionando** e redirecionam para as novas (`redirect` no servidor, verificado no navegador).
+- **`/eventos`, `/painel` e `/conflitos` sem conexão mostravam a página de erro do navegador.** Agora o SW responde com `/offline` (`fallbacks` do Serwist), que lista os eventos **preparados** deste aparelho (do IndexedDB) com link para abri-los, e tem "Tentar novamente". A rota `/offline` é **pública de propósito**: o SW a pré-carrega ao instalar, na tela de login, sem sessão — se exigisse login o pré-cache receberia um redirecionamento e a instalação inteira do SW falharia. Por ser pública, ela não contém dado de usuário no HTML (a lista vem do IndexedDB no aparelho).
+- `OccurrenceDetailScreen` (id inexistente ficava em "Carregando…" para sempre) e `ChecklistDetailScreen` (título genérico) agora mostram "não encontrado neste aparelho", com a mesma normalização `undefined`/`null` do `EventWorkspace`.
 
-**Placar (Edge, build de produção, Postgres real):** unitários 124 · integração 20 · E2E 5/5 (3 rodadas seguidas, 15/15).
+**Achados da revisão dos commits publicados (corrigidos, com regressão comprovada — falham sem a correção)**
+- **Corrida na resolução de conflitos.** A checagem "já resolvido" rodava fora da transação; resoluções simultâneas (dois dispositivos, ou clique duplo) passavam todas por ela e aplicavam várias vezes — medido: 4 chamadas simultâneas, 4 sucessos, versão subindo a cada uma e a decisão de uma sobrescrevendo a da outra. Agora a transação começa "reivindicando" o conflito com um `UPDATE … WHERE status = PENDING` (atômico no Postgres): só uma vence e as demais recebem o 409 com a entidade atual. Teste de integração com 4 chamadas concorrentes.
+- **`MERGED` sem `mergedPayload` dava 500** (erro genérico); agora é 422 com mensagem clara.
+- **"Manter minha versão" num conflito gerado por EXCLUSÃO** dava 422 com mensagem genérica (o `clientPayload` de um DELETE é `{ id }`, não nulo — minha primeira leitura de que era nulo estava errada). Agora a mensagem explica o que houve e o que fazer ("Manter o servidor" e excluir de novo). **Não** aplica a exclusão: ver "Aberto", item 3.
+- **`applyConflictResolution` sobrescrevia a cópia local mesmo com OUTRO conflito aberto na mesma entidade** — só protegia edições `PENDING`/`SENDING`. Agora trata `CONFLICT` como não decidido, a mesma regra do pull.
+
+**Aberto**
+1. **Nenhum teste em aparelho real.** Tudo foi medido no Edge com offline emulado (`context.setOffline`), que não reproduz sinal fraco, modo avião, troca de rede nem Safari/iOS. É o próximo risco real do "offline-first".
+2. **Dispositivo compartilhado:** o HTML guardado é apagado no logout, mas quem fecha o navegador sem sair mantém telas e dados no aparelho (é a opção "Sair sem limpar dados", já avisada na tela de saída). A tela `/offline` lista eventos preparados a quem abrir o app nesse aparelho enquanto os dados ainda estiverem lá.
+3. `KEEP_CLIENT` em conflito de uma operação `DELETE` **não aplica a exclusão** (só recusa com mensagem clara; "Manter o servidor" funciona). O `Conflict` não guarda o tipo da operação — hoje o servidor a infere do payload `{ id }` que o cliente emite; aplicar a exclusão de verdade pede uma coluna `operationType` (migration) e decidir o que a pessoa vê depois.
+4. O editor de merge campo a campo (`MERGED`) segue sem UI.
+
+**Placar (Edge, build de produção, Postgres real):** unitários 138 · integração 24 · E2E 6/6 (3 rodadas, 18/18, antes da revisão; mais 2 rodadas, 12/12, depois das correções). Os commits já publicados foram verificados isoladamente, em worktree limpo, antes do merge na `main`: typecheck, lint, 124 unitários, 20 de integração, build e 5 E2E.

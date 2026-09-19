@@ -29,8 +29,42 @@ export function isOfflineCacheablePath(pathname: string): boolean {
   return pathname.startsWith("/eventos/") || pathname === "/configuracoes/sincronizacao";
 }
 
+/**
+ * Tela mostrada quando não há rede e a página pedida não está guardada (ex.: `/painel`, que
+ * lê o Postgres ao vivo). É PRÉ-CARREGADA pelo Service Worker ao instalar — na tela de login,
+ * sem sessão — então precisa ser pública: se exigisse login, o pré-cache receberia um
+ * redirecionamento e a instalação inteira do SW falharia.
+ */
+export const OFFLINE_FALLBACK_URL = "/offline";
+
+/**
+ * Detalhe de checklist/ocorrência numa rota FIXA com o id na query, em vez de `/checklists/[id]`.
+ *
+ * O id é gerado no aparelho (UUIDv7), então um checklist criado offline tem uma URL nova que
+ * nenhum cache jamais viu — e o Next não renderiza uma rota dinâmica sem servidor. Com a rota
+ * fixa, o HTML guardado de `/checklists/detalhe` serve para QUALQUER id (a tela é client-side e
+ * lê o registro do IndexedDB); o Service Worker casa ignorando a query. As URLs antigas
+ * (`/checklists/[id]`) continuam existindo, redirecionando para estas.
+ */
+export function checklistDetailHref(eventId: string, checklistId: string): string {
+  return `/eventos/${encodeURIComponent(eventId)}/checklists/detalhe?id=${encodeURIComponent(checklistId)}`;
+}
+
+export function occurrenceDetailHref(eventId: string, occurrenceId: string): string {
+  return `/eventos/${encodeURIComponent(eventId)}/ocorrencias/detalhe?id=${encodeURIComponent(occurrenceId)}`;
+}
+
 /** Telas que precisam estar guardadas para um evento "preparado" abrir por completo sem rede. */
 export function eventOfflineRoutes(eventId: string): string[] {
   const base = `/eventos/${encodeURIComponent(eventId)}`;
-  return [base, `${base}/tarefas`, `${base}/checklists`, `${base}/ocorrencias`, "/configuracoes/sincronizacao"];
+  return [
+    base,
+    `${base}/tarefas`,
+    `${base}/checklists`,
+    `${base}/ocorrencias`,
+    // Rotas fixas dos detalhes (sem a query: o cache casa ignorando-a).
+    `${base}/checklists/detalhe`,
+    `${base}/ocorrencias/detalhe`,
+    "/configuracoes/sincronizacao",
+  ];
 }

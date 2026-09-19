@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { NextConfig } from "next";
 import withSerwistInit from "@serwist/next";
 
@@ -11,6 +12,10 @@ const withSerwist = withSerwistInit({
   // abortando navegações em andamento (medido: o clique em "Tarefas" offline era cancelado
   // em loop). A reconexão já é tratada por `ConnectivityMonitor` + sincronização.
   reloadOnOnline: false,
+  // Página de fallback offline: pré-carregada na instalação do SW (que acontece na tela de login,
+  // sem sessão) — por isso a rota `/offline` é pública. `revision` novo a cada build para o
+  // pré-cache sempre trocar a cópia antiga.
+  additionalPrecacheEntries: [{ url: "/offline", revision: randomUUID() }],
 });
 
 const nextConfig: NextConfig = {

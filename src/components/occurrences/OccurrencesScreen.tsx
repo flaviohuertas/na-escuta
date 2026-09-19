@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { AppLink } from "@/components/ui/AppLink";
+import { occurrenceDetailHref } from "@/lib/offline/routes";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getDb } from "@/lib/db/dexie/db";
 import type { LocalOccurrence } from "@/lib/db/dexie/schema";
@@ -160,7 +161,7 @@ export function OccurrencesScreen({
         {occurrences.map((occurrence) => (
           <li key={occurrence.id}>
             <AppLink
-              href={`/eventos/${eventId}/ocorrencias/${occurrence.id}`}
+              href={occurrenceDetailHref(eventId, occurrence.id)}
               className="block rounded-lg border border-slate-200 bg-white p-3 hover:border-brand-300"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
