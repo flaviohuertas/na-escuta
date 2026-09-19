@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 export const DEMO_EMAIL = "demo@naescuta.com.br";
 export const DEMO_PASSWORD = "NaEscuta#2026";
@@ -15,6 +15,12 @@ export async function login(page: Page, email = DEMO_EMAIL, password = DEMO_PASS
 /** Abre o primeiro evento listado (o seed cria exatamente um). */
 export async function openFirstEvent(page: Page) {
   await page.goto("/eventos");
-  await page.getByRole("link").first().click();
+  // Restrito ao <main>: o primeiro link da página é o logo do menu lateral (→ /eventos).
+  await page.getByRole("main").getByRole("link").first().click();
   await page.waitForURL(/\/eventos\/[^/]+$/);
+  // A tela do evento renderiza "Carregando…" no servidor e só resolve depois da
+  // hidratação + consulta ao Dexie. Sem esperar isso, checagens imediatas como
+  // `prepareButton.isVisible()` dão falso negativo e o teste desliga a rede antes
+  // de o JS da página terminar de carregar.
+  await expect(page.getByRole("main").getByText("Carregando…")).toBeHidden({ timeout: 15_000 });
 }

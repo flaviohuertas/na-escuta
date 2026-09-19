@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink } from "@/components/ui/AppLink";
 import { requireSession } from "@/lib/auth/require-session";
 import { prisma } from "@/lib/db/prisma";
 import { AccessStatus } from "@/generated/prisma/enums";
@@ -36,7 +36,7 @@ export default async function EventsPage() {
         <ul className="mt-6 space-y-3">
           {accessRows.map(({ event, role }) => (
             <li key={event.id}>
-              <Link
+              <AppLink
                 href={`/eventos/${event.id}`}
                 className="block rounded-lg border border-slate-200 bg-white p-4 shadow-sm hover:border-brand-300 hover:shadow"
               >
@@ -50,7 +50,7 @@ export default async function EventsPage() {
                   {formatDateRange(event.startDate, event.endDate)}
                   {event.location ? ` · ${event.location}` : ""}
                 </p>
-              </Link>
+              </AppLink>
             </li>
           ))}
         </ul>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Link from "next/link";
+import { AppLink } from "@/components/ui/AppLink";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getDb } from "@/lib/db/dexie/db";
 import type { LocalOccurrence, LocalOccurrenceEvidence } from "@/lib/db/dexie/schema";
@@ -84,9 +84,9 @@ export function OccurrenceDetailScreen({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <Link href={`/eventos/${eventId}/ocorrencias`} className="text-sm text-brand-600 hover:underline">
+      <AppLink href={`/eventos/${eventId}/ocorrencias`} className="text-sm text-brand-600 hover:underline">
         ← Voltar às ocorrências
-      </Link>
+      </AppLink>
 
       <div className="mt-2 flex items-start justify-between gap-2">
         <h1 className="text-xl font-semibold text-slate-900">{occurrence.title}</h1>

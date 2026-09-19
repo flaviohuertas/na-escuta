@@ -9,7 +9,7 @@ test.describe("Preparar evento, desconectar e recarregar", () => {
     const prepareButton = page.getByRole("button", { name: "Preparar evento para uso offline" });
     if (await prepareButton.isVisible()) {
       await prepareButton.click();
-      await expect(page.getByText("Evento preparado com sucesso")).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByText("Disponível offline", { exact: true })).toBeVisible({ timeout: 30_000 });
     }
 
     const eventUrl = page.url();

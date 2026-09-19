@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import Link from "next/link";
+import { AppLink } from "@/components/ui/AppLink";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getDb } from "@/lib/db/dexie/db";
 import type { LocalOccurrence } from "@/lib/db/dexie/schema";
@@ -92,9 +92,9 @@ export function OccurrencesScreen({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <Link href={`/eventos/${eventId}`} className="text-sm text-brand-600 hover:underline">
+      <AppLink href={`/eventos/${eventId}`} className="text-sm text-brand-600 hover:underline">
         ← Voltar ao evento
-      </Link>
+      </AppLink>
       <h1 className="mt-2 text-xl font-semibold text-slate-900">Ocorrências</h1>
 
       <form onSubmit={handleCreate} className="mt-4 space-y-2 rounded-lg border border-slate-200 bg-white p-3">
@@ -159,7 +159,7 @@ export function OccurrencesScreen({
       <ul className="mt-4 space-y-2">
         {occurrences.map((occurrence) => (
           <li key={occurrence.id}>
-            <Link
+            <AppLink
               href={`/eventos/${eventId}/ocorrencias/${occurrence.id}`}
               className="block rounded-lg border border-slate-200 bg-white p-3 hover:border-brand-300"
             >
@@ -175,7 +175,7 @@ export function OccurrencesScreen({
               <p className="mt-1 text-xs text-slate-500">
                 {STATUS_LABEL[occurrence.status]} · {formatDateTime(occurrence.occurredAt)}
               </p>
-            </Link>
+            </AppLink>
           </li>
         ))}
         {occurrences.length === 0 && <p className="text-sm text-slate-500">Nenhuma ocorrência registrada.</p>}

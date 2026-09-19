@@ -4,6 +4,7 @@ import { useState } from "react";
 import { getDb } from "@/lib/db/dexie/db";
 import { prepareEventForOffline, type PrepareProgress, type PrepareResult } from "@/lib/sync/bootstrap";
 import { requestPersistentStorage } from "@/lib/storage/persistence";
+import { warmEventRoutes } from "@/lib/offline/warm-routes";
 
 export function PrepareOfflineButton({ eventId, onDone }: { eventId: string; onDone?: () => void }) {
   const [progress, setProgress] = useState<PrepareProgress | null>(null);
@@ -20,6 +21,7 @@ export function PrepareOfflineButton({ eventId, onDone }: { eventId: string; onD
       const db = getDb();
       const res = await prepareEventForOffline(db, eventId, {
         onProgress: setProgress,
+        warmRoutes: (id) => warmEventRoutes(id),
       });
       setResult(res);
       if (res.ok) onDone?.();
@@ -31,7 +33,7 @@ export function PrepareOfflineButton({ eventId, onDone }: { eventId: string; onD
   const pct =
     progress && progress.expected > 0
       ? Math.min(100, Math.round((progress.downloaded / progress.expected) * 100))
-      : progress?.phase === "verifying"
+      : progress?.phase === "verifying" || progress?.phase === "caching"
         ? 100
         : 0;
 
@@ -63,6 +65,7 @@ export function PrepareOfflineButton({ eventId, onDone }: { eventId: string; onD
             {progress.phase === "downloading" &&
               `Baixando dados (${progress.downloaded}${progress.expected ? ` de ${progress.expected}` : ""})…`}
             {progress.phase === "verifying" && "Verificando se tudo foi baixado…"}
+            {progress.phase === "caching" && "Guardando as telas para abrir sem internet…"}
             {progress.phase === "done" && "Concluído."}
             {progress.phase === "error" && "Falhou."}
           </p>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import Link from "next/link";
+import { AppLink } from "@/components/ui/AppLink";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getDb } from "@/lib/db/dexie/db";
 import type { LocalChecklistTemplate } from "@/lib/db/dexie/schema";
@@ -70,9 +70,9 @@ export function ChecklistsScreen({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <Link href={`/eventos/${eventId}`} className="text-sm text-brand-600 hover:underline">
+      <AppLink href={`/eventos/${eventId}`} className="text-sm text-brand-600 hover:underline">
         ← Voltar ao evento
-      </Link>
+      </AppLink>
       <h1 className="mt-2 text-xl font-semibold text-slate-900">Checklists</h1>
 
       <form
@@ -111,7 +111,7 @@ export function ChecklistsScreen({
           const counts = itemCounts.get(checklist.id) ?? { total: 0, done: 0 };
           return (
             <li key={checklist.id}>
-              <Link
+              <AppLink
                 href={`/eventos/${eventId}/checklists/${checklist.id}`}
                 className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white p-3 hover:border-brand-300"
               >
@@ -122,7 +122,7 @@ export function ChecklistsScreen({
                   </p>
                 </div>
                 <SyncStatusBadge status={checklist.syncStatus} />
-              </Link>
+              </AppLink>
             </li>
           );
         })}

@@ -137,6 +137,79 @@ describe("prepareEventForOffline", () => {
     expect(await isEventPreparedOffline(db, eventId)).toBe(false);
   });
 
+  describe("guardar as telas do evento (warmRoutes)", () => {
+    const warmed = { serviceWorkerActive: true, cached: ["/eventos/x"], failed: [] as string[] };
+
+    it("roda DEPOIS da verificação de dados e ANTES de marcar como preparado, e devolve o resultado", async () => {
+      const db = getDb();
+      const fetchImpl = makeFetchImpl(makeBootstrapResponse(1));
+      const phases: PreparePhase[] = [];
+      let preparedWhenWarming: boolean | null = null;
+      const warmRoutes = vi.fn(async () => {
+        preparedWhenWarming = await isEventPreparedOffline(db, eventId);
+        return warmed;
+      });
+
+      const result = await prepareEventForOffline(db, eventId, {
+        fetchImpl,
+        warmRoutes,
+        onProgress: (p) => phases.push(p.phase),
+      });
+
+      expect(warmRoutes).toHaveBeenCalledWith(eventId);
+      // O selo "Disponível offline" depende de isPrepared: só pode acender com as telas já guardadas.
+      expect(preparedWhenWarming).toBe(false);
+      expect(await isEventPreparedOffline(db, eventId)).toBe(true);
+      expect(result.routes).toEqual(warmed);
+      expect(phases.slice(-3)).toEqual(["verifying", "caching", "done"]);
+    });
+
+    it("não roda quando a verificação de dados falha (não há o que guardar de um evento incompleto)", async () => {
+      const db = getDb();
+      const response = makeBootstrapResponse(3);
+      response.changes = response.changes.slice(0, 1);
+      const warmRoutes = vi.fn(async () => warmed);
+
+      const result = await prepareEventForOffline(db, eventId, {
+        fetchImpl: makeFetchImpl(response),
+        warmRoutes,
+      });
+
+      expect(result.ok).toBe(false);
+      expect(warmRoutes).not.toHaveBeenCalled();
+      expect(result.routes).toBeUndefined();
+    });
+
+    it("falha ao guardar as telas NÃO invalida os dados: o evento fica preparado e o motivo é devolvido", async () => {
+      const db = getDb();
+      const failedWarm = { serviceWorkerActive: false, cached: [], failed: ["/eventos/x"] };
+
+      const result = await prepareEventForOffline(db, eventId, {
+        fetchImpl: makeFetchImpl(makeBootstrapResponse(1)),
+        warmRoutes: async () => failedWarm,
+      });
+
+      expect(result.ok).toBe(true);
+      expect(result.routes).toEqual(failedWarm);
+      expect(await isEventPreparedOffline(db, eventId)).toBe(true);
+    });
+
+    it("exceção ao guardar as telas também não derruba a preparação", async () => {
+      const db = getDb();
+
+      const result = await prepareEventForOffline(db, eventId, {
+        fetchImpl: makeFetchImpl(makeBootstrapResponse(1)),
+        warmRoutes: async () => {
+          throw new Error("boom");
+        },
+      });
+
+      expect(result.ok).toBe(true);
+      expect(result.routes).toBeUndefined();
+      expect(await isEventPreparedOffline(db, eventId)).toBe(true);
+    });
+  });
+
   it("propaga erro quando o servidor responde com falha", async () => {
     const db = getDb();
     const fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 403 });

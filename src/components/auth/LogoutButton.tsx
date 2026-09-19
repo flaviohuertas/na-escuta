@@ -5,6 +5,7 @@ import { signOut } from "next-auth/react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getDb, wipeLocalDatabase } from "@/lib/db/dexie/db";
 import { exportPendingChangesEncrypted } from "@/lib/sync/export-pending";
+import { clearUserScopedCaches } from "@/lib/offline/warm-routes";
 
 type Step = "confirm" | "export" | "exporting";
 
@@ -66,6 +67,9 @@ export function LogoutButton() {
     if (wipe) {
       await wipeLocalDatabase();
     }
+    // O HTML/RSC guardado pelo Service Worker carrega nome e dados do usuário: some em
+    // qualquer saída, com ou sem limpar o banco local.
+    await clearUserScopedCaches();
     await signOut({ redirectTo: "/login" });
   }
 

@@ -1,8 +1,9 @@
 import type { AppDatabase } from "@/lib/db/dexie/schema";
 import { applyPullResponse, pullChanges } from "./engine";
 import { BootstrapResponseSchema, type BootstrapResponse } from "./protocol";
+import type { WarmRoutesResult } from "@/lib/offline/warm-routes";
 
-export type PreparePhase = "starting" | "downloading" | "verifying" | "done" | "error";
+export type PreparePhase = "starting" | "downloading" | "verifying" | "caching" | "done" | "error";
 
 export interface PrepareProgress {
   phase: PreparePhase;
@@ -19,6 +20,8 @@ export interface PrepareResult {
   ok: boolean;
   counts: Record<string, PrepareTypeCount>;
   mismatched: string[];
+  /** Resultado de guardar as telas do evento para uso sem rede; ausente se `warmRoutes` não foi passado ou lançou erro. */
+  routes?: WarmRoutesResult;
 }
 
 async function countLocalRows(
@@ -58,6 +61,13 @@ export async function prepareEventForOffline(
   opts: {
     fetchImpl?: typeof fetch;
     onProgress?: (progress: PrepareProgress) => void;
+    /**
+     * Guarda as telas do evento no cache do Service Worker. Roda DEPOIS da verificação de
+     * dados e ANTES de marcar o evento como preparado — assim o selo "Disponível offline"
+     * só aparece quando as telas realmente já estão guardadas. Falha aqui não invalida os
+     * dados baixados (o evento continua sincronizando); só fica registrada em `result.routes`.
+     */
+    warmRoutes?: (eventId: string) => Promise<WarmRoutesResult>;
   } = {}
 ): Promise<PrepareResult> {
   const fetchImpl = opts.fetchImpl ?? fetch;
@@ -131,6 +141,16 @@ export async function prepareEventForOffline(
 
   const ok = mismatched.length === 0;
 
+  let routes: WarmRoutesResult | undefined;
+  if (ok && opts.warmRoutes) {
+    onProgress({ phase: "caching", downloaded, expected: expectedTotal });
+    try {
+      routes = await opts.warmRoutes(eventId);
+    } catch {
+      routes = undefined;
+    }
+  }
+
   await db.transaction("rw", db.syncState, async () => {
     const current = await db.syncState.get(eventId);
     await db.syncState.put({
@@ -144,7 +164,7 @@ export async function prepareEventForOffline(
 
   onProgress({ phase: ok ? "done" : "error", downloaded, expected: expectedTotal });
 
-  return { ok, counts, mismatched };
+  return { ok, counts, mismatched, routes };
 }
 
 /** Um evento é considerado "disponível offline" só se já passou por um bootstrap com verificação OK. */

@@ -1,12 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * E2E requer a stack real: `docker compose up -d && npx prisma migrate
- * deploy && npm run db:seed` e o app rodando em modo PRODUÇÃO (`npm run
- * build && npm run start`) — o Service Worker fica desligado em `next dev`
- * de propósito (ver next.config.ts), e testar offline sem ele não prova
- * nada. Não executado nesta sessão de desenvolvimento (sem Docker/Postgres,
- * sem browsers do Playwright instalados) — ver docs/PLANO.md.
+ * E2E requer a stack real: um Postgres (`docker compose up -d`, ou sem Docker via
+ * `embedded-postgres` — ver docs/PLANO.md §11) com `npx prisma migrate deploy --config
+ * prisma7.config.ts && npm run db:seed`, e o app rodando em modo PRODUÇÃO (`npm run build &&
+ * npm run start`) — o Service Worker fica desligado em `next dev` de propósito (ver
+ * next.config.ts), e testar offline sem ele não prova nada.
+ *
+ * Os specs assumem o banco só com o seed (um evento). Rodam em série no mesmo banco. Já
+ * foram executados com o Edge instalado (`channel: "msedge"`, sem baixar o Chromium) e passam
+ * 5/5 — ver docs/PLANO.md §13.
  */
 export default defineConfig({
   testDir: "./tests/e2e",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import Link from "next/link";
+import { AppLink } from "@/components/ui/AppLink";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getDb } from "@/lib/db/dexie/db";
 import type { LocalTask } from "@/lib/db/dexie/schema";
@@ -86,9 +86,9 @@ export function TasksScreen({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <Link href={`/eventos/${eventId}`} className="text-sm text-brand-600 hover:underline">
+      <AppLink href={`/eventos/${eventId}`} className="text-sm text-brand-600 hover:underline">
         ← Voltar ao evento
-      </Link>
+      </AppLink>
       <h1 className="mt-2 text-xl font-semibold text-slate-900">Tarefas</h1>
 
       <form

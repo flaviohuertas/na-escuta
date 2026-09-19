@@ -25,6 +25,10 @@ export default defineConfig({
           environment: "node",
           include: ["tests/integration/**/*.test.ts"],
           restoreMocks: true,
+          // Todos os arquivos compartilham um único Postgres e cada teste faz
+          // TRUNCATE no beforeEach — em paralelo, um arquivo apaga os dados do outro
+          // no meio do setup (violações de FK aleatórias).
+          fileParallelism: false,
         },
       },
     ],
