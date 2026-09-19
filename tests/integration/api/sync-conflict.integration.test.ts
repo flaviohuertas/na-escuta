@@ -20,7 +20,12 @@ import {
   truncateAll,
 } from "../helpers/factories";
 import { processPushBatch } from "@/server/sync/push.service";
-import { ConflictAlreadyResolvedError, resolveConflict } from "@/server/sync/conflict.service";
+import {
+  ConflictAlreadyResolvedError,
+  ConflictForbiddenError,
+  InvalidConflictPayloadError,
+  resolveConflict,
+} from "@/server/sync/conflict.service";
 import type { PushOperation } from "@/lib/sync/protocol";
 
 const prisma = createTestPrismaClient();
@@ -34,7 +39,7 @@ describe("conflitos entre dois dispositivos (integração — Postgres real)", (
     await prisma.$disconnect();
   });
 
-  async function setupConflict() {
+  async function setupConflict(deviceBExtraFields: Record<string, unknown> = {}) {
     const company = await createTestCompany(prisma);
     const user = await createTestUser(prisma);
     await createMembership(prisma, user.id, company.id, "PRODUCER");
@@ -86,7 +91,7 @@ describe("conflitos entre dois dispositivos (integração — Postgres real)", (
       entityId: taskId,
       operationType: "UPDATE",
       baseVersion: 1,
-      payload: { eventId: event.id, title: "Editado pelo dispositivo B" },
+      payload: { eventId: event.id, title: "Editado pelo dispositivo B", ...deviceBExtraFields },
       clientTimestamp: new Date().toISOString(),
       deviceId: "device-B",
     };
@@ -138,6 +143,43 @@ describe("conflitos entre dois dispositivos (integração — Postgres real)", (
     expect(task.title).toBe("Editado pelo dispositivo A");
   });
 
+  it("KEEP_CLIENT funciona com o payload REAL de um dispositivo (objeto local completo, com campos que só existem no aparelho)", async () => {
+    // Regressão medida no E2E: o clientPayload guardado é o objeto local cru (syncStatus,
+    // createdAt…); aplicá-lo no Prisma dava "Unknown argument `syncStatus`" e a resolução
+    // "Manter minha versão" falhava sempre.
+    const localOnlyFields = {
+      syncStatus: "pending",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+      createdBy: null,
+      updatedBy: null,
+    };
+    const { user, conflictId, taskId } = await setupConflict(localOnlyFields);
+
+    await resolveConflict({ conflictId, userId: user.id, strategy: "KEEP_CLIENT" });
+
+    const task = await prisma.task.findUniqueOrThrow({ where: { id: taskId } });
+    expect(task.title).toBe("Editado pelo dispositivo B");
+    expect(task.version).toBe(3); // v1 → A (v2) → resolução (v3)
+    const conflict = await prisma.conflict.findUniqueOrThrow({ where: { id: conflictId } });
+    expect(conflict.status).toBe("RESOLVED");
+  });
+
+  it("payload de conflito inválido é recusado com erro claro, sem escrever nada", async () => {
+    const { user, conflictId, taskId } = await setupConflict();
+    await prisma.conflict.update({ where: { id: conflictId }, data: { clientPayload: { title: "" } } });
+    const before = await prisma.task.findUniqueOrThrow({ where: { id: taskId } });
+
+    await expect(
+      resolveConflict({ conflictId, userId: user.id, strategy: "KEEP_CLIENT" })
+    ).rejects.toBeInstanceOf(InvalidConflictPayloadError);
+
+    const after = await prisma.task.findUniqueOrThrow({ where: { id: taskId } });
+    expect(after.version).toBe(before.version);
+    expect((await prisma.conflict.findUniqueOrThrow({ where: { id: conflictId } })).status).toBe("PENDING");
+  });
+
   it("não permite resolver o mesmo conflito duas vezes", async () => {
     const { user, conflictId } = await setupConflict();
     await resolveConflict({ conflictId, userId: user.id, strategy: "KEEP_SERVER" });
@@ -145,5 +187,32 @@ describe("conflitos entre dois dispositivos (integração — Postgres real)", (
     await expect(
       resolveConflict({ conflictId, userId: user.id, strategy: "KEEP_CLIENT" })
     ).rejects.toBeInstanceOf(ConflictAlreadyResolvedError);
+  });
+
+  it("o 'já resolvido' devolve a entidade ATUAL, para o outro dispositivo convergir em vez de ficar com o conflito preso", async () => {
+    const { user, conflictId, taskId } = await setupConflict();
+    await resolveConflict({ conflictId, userId: user.id, strategy: "KEEP_CLIENT" });
+
+    const error = await resolveConflict({ conflictId, userId: user.id, strategy: "KEEP_SERVER" }).catch(
+      (e) => e
+    );
+
+    expect(error).toBeInstanceOf(ConflictAlreadyResolvedError);
+    const current = await prisma.task.findUniqueOrThrow({ where: { id: taskId } });
+    expect((error as ConflictAlreadyResolvedError).entity).toMatchObject({
+      id: taskId,
+      version: current.version,
+      title: current.title,
+    });
+  });
+
+  it("quem não tem acesso ao evento recebe 403 mesmo para um conflito já resolvido — o 409 não vaza a entidade", async () => {
+    const { user, conflictId } = await setupConflict();
+    await resolveConflict({ conflictId, userId: user.id, strategy: "KEEP_SERVER" });
+    const outsider = await createTestUser(prisma);
+
+    await expect(
+      resolveConflict({ conflictId, userId: outsider.id, strategy: "KEEP_SERVER" })
+    ).rejects.toBeInstanceOf(ConflictForbiddenError);
   });
 });

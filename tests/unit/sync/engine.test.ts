@@ -127,6 +127,97 @@ describe("sync engine", () => {
       expect(task?.title).toBe("Local não sincronizado");
     });
 
+    describe("conflito ainda não resolvido (edição offline recusada pelo servidor)", () => {
+      const taskId = "01991b1a-0000-7000-8000-000000000001";
+      const opId = "01991b1a-0000-7000-8000-0000000000a1";
+      const conflictId = "01991b1a-0000-7000-8000-0000000000c1";
+
+      function pullOf(version: number, title: string): PullResponse {
+        return {
+          changes: [
+            {
+              entityType: "Task",
+              entityId: taskId,
+              version,
+              deletedAt: null,
+              data: { ...baseTask(), title, version },
+              updatedAt: new Date().toISOString(),
+            },
+          ],
+          nextCursor: "cursor-x",
+          hasMore: false,
+          serverTime: new Date().toISOString(),
+          accessRevoked: false,
+        };
+      }
+
+      /** Estado real do dispositivo logo depois que o push devolveu CONFLICT. */
+      async function deviceWithFreshConflict() {
+        const db = getDb();
+        await db.tasks.add(baseTask({ title: "Editado offline", syncStatus: "syncing" }));
+        await db.outbox.add(baseOp({ status: "SENDING", payload: { title: "Editado offline" } }));
+        await applyPushResponse(db, {
+          results: [
+            {
+              operationId: opId,
+              entityId: taskId,
+              outcome: "CONFLICT",
+              conflictId,
+              serverVersion: 2,
+              serverEntity: { ...baseTask(), title: "Versão do servidor", version: 2 },
+            },
+          ],
+          serverTime: new Date().toISOString(),
+        });
+        return db;
+      }
+
+      it("o pull do MESMO ciclo (versão que causou o conflito) não apaga a edição offline em silêncio", async () => {
+        // Regressão medida no E2E de dois dispositivos: o conflito era detectado e, no pull logo
+        // em seguida, a tarefa local era sobrescrita e o conflito dado como "superado" — a pessoa
+        // nunca via a tela de conflitos e a edição dela sumia.
+        const db = await deviceWithFreshConflict();
+
+        await applyPullResponse(db, eventId, pullOf(2, "Versão do servidor"));
+
+        const task = await db.tasks.get(taskId);
+        expect(task?.title).toBe("Editado offline"); // edição preservada
+        expect(task?.syncStatus).toBe("conflict"); // ainda sinalizada
+        expect((await db.outbox.get(opId))?.status).toBe("CONFLICT"); // operação segue na outbox
+        expect((await db.conflicts.get(conflictId))?.status).toBe("PENDING"); // e visível em /conflitos
+      });
+
+      it("mesmo que o pull traga uma versão MAIS nova, só a resolução explícita fecha o conflito", async () => {
+        const db = await deviceWithFreshConflict();
+
+        await applyPullResponse(db, eventId, pullOf(5, "Outra edição posterior"));
+
+        expect((await db.tasks.get(taskId))?.title).toBe("Editado offline");
+        expect((await db.outbox.get(opId))?.status).toBe("CONFLICT");
+        expect((await db.conflicts.get(conflictId))?.status).toBe("PENDING");
+      });
+
+      it("entidades SEM conflito no mesmo pull continuam sendo atualizadas normalmente", async () => {
+        const db = await deviceWithFreshConflict();
+        const otherId = "01991b1a-0000-7000-8000-000000000002";
+        await db.tasks.add(baseTask({ id: otherId, title: "Antiga" }));
+
+        const response = pullOf(2, "Versão do servidor");
+        response.changes.push({
+          entityType: "Task",
+          entityId: otherId,
+          version: 2,
+          deletedAt: null,
+          data: { ...baseTask({ id: otherId }), title: "Atualizada pelo servidor", version: 2 },
+          updatedAt: new Date().toISOString(),
+        });
+        await applyPullResponse(db, eventId, response);
+
+        expect((await db.tasks.get(otherId))?.title).toBe("Atualizada pelo servidor");
+        expect((await db.tasks.get(taskId))?.title).toBe("Editado offline");
+      });
+    });
+
     it("aplica tombstone removendo a entidade local", async () => {
       const db = getDb();
       await db.tasks.add(baseTask());

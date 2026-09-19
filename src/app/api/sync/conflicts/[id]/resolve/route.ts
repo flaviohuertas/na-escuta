@@ -5,6 +5,7 @@ import {
   ConflictAlreadyResolvedError,
   ConflictForbiddenError,
   ConflictNotFoundError,
+  InvalidConflictPayloadError,
   resolveConflict,
 } from "@/server/sync/conflict.service";
 
@@ -41,10 +42,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: err.message }, { status: 404 });
     }
     if (err instanceof ConflictAlreadyResolvedError) {
-      return NextResponse.json({ error: err.message }, { status: 409 });
+      // Devolve a entidade atual: o dispositivo que ainda mostrava o conflito converge com ela.
+      return NextResponse.json({ error: err.message, entity: err.entity }, { status: 409 });
     }
     if (err instanceof ConflictForbiddenError) {
       return NextResponse.json({ error: err.message }, { status: 403 });
+    }
+    if (err instanceof InvalidConflictPayloadError) {
+      return NextResponse.json({ error: err.message }, { status: 422 });
     }
     throw err;
   }

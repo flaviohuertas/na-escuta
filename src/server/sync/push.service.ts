@@ -1,20 +1,9 @@
-import type { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import type { Prisma } from "@/generated/prisma/client";
-import { TaskInputSchema } from "@/lib/domain/task.schema";
-import { ChecklistItemInputSchema, ChecklistTemplateInputSchema } from "@/lib/domain/checklist.schema";
-import { OccurrenceEvidenceInputSchema, OccurrenceInputSchema } from "@/lib/domain/occurrence.schema";
 import type { PushOperation, PushResultItem, RejectionReason, SyncOutcome } from "@/lib/sync/protocol";
 import { authorizeEventAccess, roleCanWrite } from "./authorize";
 import { delegateFor } from "./entity-delegate";
-
-const SCHEMA_BY_ENTITY: Record<PushOperation["entityType"], z.ZodTypeAny> = {
-  Task: TaskInputSchema,
-  ChecklistTemplate: ChecklistTemplateInputSchema,
-  ChecklistItem: ChecklistItemInputSchema,
-  Occurrence: OccurrenceInputSchema,
-  OccurrenceEvidence: OccurrenceEvidenceInputSchema,
-};
+import { SCHEMA_BY_ENTITY } from "./entity-schemas";
 
 interface PushProcessContext {
   userId: string;

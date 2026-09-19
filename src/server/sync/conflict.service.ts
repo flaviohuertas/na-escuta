@@ -2,10 +2,23 @@ import { prisma } from "@/lib/db/prisma";
 import { ConflictResolutionStrategy, ConflictStatus } from "@/generated/prisma/enums";
 import { authorizeEventAccess, roleCanWrite } from "./authorize";
 import { delegateFor } from "./entity-delegate";
+import { SCHEMA_BY_ENTITY } from "./entity-schemas";
 import type { SyncEntityType } from "@/lib/sync/protocol";
 
 export class ConflictNotFoundError extends Error {}
-export class ConflictAlreadyResolvedError extends Error {}
+export class InvalidConflictPayloadError extends Error {}
+export class ConflictAlreadyResolvedError extends Error {
+  /**
+   * Estado ATUAL da entidade no servidor. Quem tentou resolver de outro dispositivo usa isso
+   * para convergir a cópia local em vez de ficar com um conflito que não consegue mais fechar.
+   */
+  constructor(
+    message: string,
+    public entity: unknown = null
+  ) {
+    super(message);
+  }
+}
 export class ConflictForbiddenError extends Error {
   constructor(public reason: string) {
     super(reason);
@@ -31,16 +44,21 @@ export interface ResolveConflictParams {
 export async function resolveConflict(params: ResolveConflictParams) {
   const conflict = await prisma.conflict.findUnique({ where: { id: params.conflictId } });
   if (!conflict) throw new ConflictNotFoundError("Conflito não encontrado.");
-  if (conflict.status === ConflictStatus.RESOLVED) {
-    throw new ConflictAlreadyResolvedError("Este conflito já foi resolvido.");
-  }
 
+  // Autorização ANTES de qualquer resposta que revele dado: o 409 abaixo devolve a entidade.
   const auth = await authorizeEventAccess({ userId: params.userId }, conflict.eventId);
   if (!auth.allowed || !auth.eventRole || !roleCanWrite(auth.eventRole)) {
     throw new ConflictForbiddenError(auth.reason ?? "FORBIDDEN");
   }
 
   const entityType = conflict.entityType as SyncEntityType;
+
+  if (conflict.status === ConflictStatus.RESOLVED) {
+    const current = await delegateFor(prisma, entityType).findUnique({
+      where: { id: conflict.entityId },
+    });
+    throw new ConflictAlreadyResolvedError("Este conflito já foi resolvido.", current);
+  }
 
   return prisma.$transaction(async (tx) => {
     const delegate = delegateFor(tx, entityType);
@@ -57,11 +75,24 @@ export async function resolveConflict(params: ResolveConflictParams) {
       if (!payload) {
         throw new Error("MERGED exige mergedPayload.");
       }
+      // O `clientPayload` guardado é o objeto LOCAL do dispositivo, cru (com `syncStatus`,
+      // `createdAt` etc.). Passa pelo mesmo schema do push, que descarta o que só existe no
+      // dispositivo — aplicar cru falhava no Prisma com "Unknown argument `syncStatus`" e a
+      // resolução "Manter minha versão" nunca funcionava.
+      const validated = SCHEMA_BY_ENTITY[entityType].safeParse(payload);
+      if (!validated.success) {
+        throw new InvalidConflictPayloadError(
+          "O conteúdo guardado deste conflito não é válido para ser aplicado."
+        );
+      }
       // Remove campos de identidade/controle que não devem ser sobrescritos por payload de cliente.
-      const { id: _id, version: _v, companyId: _c, eventId: _e, ...safePayload } = payload as Record<
-        string,
-        unknown
-      >;
+      const {
+        id: _id,
+        version: _v,
+        companyId: _c,
+        eventId: _e,
+        ...safePayload
+      } = validated.data as Record<string, unknown>;
 
       updatedEntity = await delegate.update({
         where: { id: conflict.entityId },

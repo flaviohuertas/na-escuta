@@ -17,7 +17,7 @@ async function prepareDeviceOnEvent(browser: Browser) {
   const prepareButton = page.getByRole("button", { name: "Preparar evento para uso offline" });
   if (await prepareButton.isVisible()) {
     await prepareButton.click();
-    await expect(page.getByText("Evento preparado com sucesso")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("Disponível offline", { exact: true })).toBeVisible({ timeout: 30_000 });
   }
 
   await page.getByRole("link", { name: "Tarefas" }).click();
@@ -46,9 +46,13 @@ test.describe("Resolver conflito entre dois dispositivos", () => {
     // Reconecta e sincroniza — deve gerar conflito, não sobrescrever.
     await deviceA.context.setOffline(false);
     await deviceA.page.getByRole("button", { name: "Sincronizar agora" }).click();
-    await expect(deviceA.page.getByText("Conflito").first()).toBeVisible({ timeout: 15_000 });
+    // O link do conflito na barra de status — NÃO `getByText("Conflito")`, que casava com o link
+    // "Conflitos" do menu e passava mesmo sem conflito nenhum (foi assim que o bug de o conflito
+    // ser apagado em silêncio pelo pull passou despercebido).
+    const conflictLink = deviceA.page.getByRole("link", { name: /conflito\(s\) para resolver/ });
+    await expect(conflictLink).toBeVisible({ timeout: 15_000 });
 
-    await deviceA.page.getByRole("link", { name: /conflito\(s\) para resolver/ }).click();
+    await conflictLink.click();
     await expect(deviceA.page.getByRole("heading", { name: "Conflitos pendentes" })).toBeVisible();
 
     await deviceA.page.getByRole("button", { name: "Manter minha versão (deste dispositivo)" }).click();

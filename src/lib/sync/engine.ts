@@ -15,7 +15,7 @@ export class AccessRevokedError extends Error {
   }
 }
 
-function tableForEntity(db: AppDatabase, entityType: OutboxEntityType) {
+export function tableForEntity(db: AppDatabase, entityType: OutboxEntityType) {
   switch (entityType) {
     case "Task":
       return db.tasks;
@@ -58,12 +58,17 @@ export async function applyPullResponse(
     async () => {
       for (const change of parsed.changes) {
         const localOps = await db.outbox.where("entityId").equals(change.entityId).toArray();
-        const hasPendingLocalEdit = localOps.some(
-          (op) => op.status === "PENDING" || op.status === "SENDING"
+        // Nunca sobrescreve uma entidade com edição local que o servidor ainda não aceitou:
+        //  - PENDING/SENDING: o próximo push reconcilia (ou gera conflito visível);
+        //  - CONFLICT: o servidor JÁ recusou essa edição e a pessoa ainda não decidiu. O pull do
+        //    mesmo ciclo traz justamente a versão do servidor que causou o conflito — sobrescrever
+        //    aqui (e dar o conflito por "superado") apagava a edição offline em silêncio, sem a
+        //    pessoa nunca ver a tela de conflitos. Só a resolução explícita
+        //    (`applyConflictResolution`) fecha um conflito.
+        const hasUnsettledLocalEdit = localOps.some(
+          (op) => op.status === "PENDING" || op.status === "SENDING" || op.status === "CONFLICT"
         );
-        // Nunca sobrescreve uma entidade com edição local ainda não confirmada —
-        // o próximo push é quem vai reconciliar (ou gerar conflito visível).
-        if (hasPendingLocalEdit) continue;
+        if (hasUnsettledLocalEdit) continue;
 
         const table = tableForEntity(db, change.entityType);
         if (change.deletedAt || !change.data) {
@@ -77,29 +82,6 @@ export async function applyPullResponse(
           updatedAt: change.updatedAt,
           syncStatus: "synced",
         } as never);
-
-        // Uma versão mais nova chegou por pull: qualquer conflito local
-        // pendente para esta entidade foi superado (resolvido no servidor,
-        // por este ou outro dispositivo) — limpa a operação CONFLICT presa
-        // na outbox e marca o registro local de conflito como resolvido,
-        // em vez de deixar a entidade presa mostrando "conflito" para sempre.
-        const staleConflictOps = localOps.filter((op) => op.status === "CONFLICT");
-        for (const op of staleConflictOps) {
-          await db.outbox.delete(op.id);
-        }
-        if (staleConflictOps.length > 0) {
-          const localConflicts = await db.conflicts
-            .where("entityId")
-            .equals(change.entityId)
-            .filter((c) => c.status === "PENDING")
-            .toArray();
-          for (const conflict of localConflicts) {
-            await db.conflicts.update(conflict.id, {
-              status: "RESOLVED",
-              resolvedAt: new Date().toISOString(),
-            });
-          }
-        }
       }
 
       const currentCursor = await db.syncState.get(eventId);

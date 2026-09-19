@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getDb } from "@/lib/db/dexie/db";
 import type { LocalConflict } from "@/lib/db/dexie/schema";
+import { applyConflictResolution } from "@/lib/sync/conflict-resolution";
 
 function formatDateTime(iso: string): string {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -36,6 +37,7 @@ function fieldDiff(client: Record<string, unknown>, server: Record<string, unkno
 export function ConflictsScreen() {
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const conflicts = useLiveQuery(
     async () => {
@@ -49,22 +51,33 @@ export function ConflictsScreen() {
   async function resolve(conflict: LocalConflict, strategy: "KEEP_SERVER" | "KEEP_CLIENT") {
     setResolvingId(conflict.id);
     setError(null);
+    setNotice(null);
     try {
       const res = await fetch(`/api/sync/conflicts/${conflict.id}/resolve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ strategy }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: "Falha ao resolver o conflito." }));
-        throw new Error(body.error ?? "Falha ao resolver o conflito.");
+      const body = (await res.json().catch(() => null)) as {
+        error?: string;
+        entity?: Record<string, unknown> | null;
+      } | null;
+
+      if (res.status === 409 && body?.entity) {
+        // Outro dispositivo já resolveu: a escolha feita AQUI não vale — converge com o
+        // resultado que o servidor tem e avisa, em vez de deixar o conflito preso.
+        await applyConflictResolution(getDb(), conflict, body.entity);
+        setNotice(
+          "Este conflito já tinha sido resolvido em outro dispositivo. A tela foi atualizada com o resultado que está no servidor — a sua escolha aqui não foi aplicada."
+        );
+        return;
       }
-      // Limpeza otimista local — a próxima sincronização também confirma isso via pull.
-      await getDb().conflicts.update(conflict.id, {
-        status: "RESOLVED",
-        resolvedAt: new Date().toISOString(),
-      });
-      await getDb().outbox.delete(conflict.operationId);
+      if (!res.ok) {
+        throw new Error(body?.error ?? "Falha ao resolver o conflito.");
+      }
+      // Converge a cópia local com o que o servidor tem agora. Com "Manter o servidor" a
+      // entidade lá não muda, então o pull nunca a traria de volta.
+      await applyConflictResolution(getDb(), conflict, body?.entity ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao resolver o conflito.");
     } finally {
@@ -82,6 +95,11 @@ export function ConflictsScreen() {
       {error && (
         <p role="alert" className="mt-2 text-sm text-status-error">
           {error}
+        </p>
+      )}
+      {notice && (
+        <p role="status" className="mt-2 text-sm text-slate-700">
+          {notice}
         </p>
       )}
 
