@@ -55,6 +55,8 @@ model User {
   memberships Membership[]
   eventAccess EventAccess[]
   devices     Device[]
+  approvalsSubmitted PendingApproval[] @relation("ApprovalSubmitter")
+  approvalsReviewed  PendingApproval[] @relation("ApprovalReviewer")
 
   @@map("users")
 }
@@ -152,6 +154,7 @@ model Event {
   tasks       Task[]
   checklists  ChecklistTemplate[]
   occurrences Occurrence[]
+  approvals   PendingApproval[]
 
   @@index([companyId, updatedAt])
   @@map("events")
@@ -413,9 +416,11 @@ enum PendingApprovalStatus {
   REJECTED
 }
 
-// Padrão genérico "proposta pendente" — usado por módulos sensíveis futuros
-// (financeiro, contratos, estoque, aprovações). Schema já existe para evitar
-// retrabalho estrutural; não é usado pelo domínio implementado nesta fatia.
+// Padrão genérico "proposta pendente": alguém propõe uma mudança, alguém com autoridade a aprova
+// (e ela é aplicada) ou a rejeita (com o motivo). `entityType` escolhe quem sabe aplicar a mudança
+// (registro em `src/server/approvals/registry.ts`); `proposedChangeJson` é o formato desse tipo.
+// Primeiro uso: correção dos dados de um evento proposta pela equipe de campo. Orçamentos,
+// contratos e financeiro entram registrando o seu tipo — o motor não muda.
 model PendingApproval {
   id                 String                 @id @default(uuid())
   companyId          String
@@ -431,6 +436,12 @@ model PendingApproval {
   reviewNotes        String?
   syncOperationId    String?
 
+  event       Event @relation(fields: [eventId], references: [id])
+  submittedBy User  @relation("ApprovalSubmitter", fields: [submittedByUserId], references: [id])
+  reviewedBy  User? @relation("ApprovalReviewer", fields: [reviewedByUserId], references: [id])
+
   @@index([companyId, status])
+  @@index([eventId, status])
+  @@index([submittedByUserId, status])
   @@map("pending_approvals")
 }

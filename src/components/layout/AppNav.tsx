@@ -1,7 +1,16 @@
 import { AppLink } from "@/components/ui/AppLink";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 
-export function AppNav({ userName, canManageTeam = false }: { userName: string; canManageTeam?: boolean }) {
+export function AppNav({
+  userName,
+  canManageTeam = false,
+  pendingApprovals = 0,
+}: {
+  userName: string;
+  canManageTeam?: boolean;
+  /** Propostas esperando a decisão desta pessoa. */
+  pendingApprovals?: number;
+}) {
   return (
     <nav className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-900 px-4 py-3 text-white md:w-56 md:flex-col md:items-stretch md:border-b-0 md:border-r">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 md:flex-col md:items-stretch md:gap-1">
@@ -13,6 +22,17 @@ export function AppNav({ userName, canManageTeam = false }: { userName: string; 
         </AppLink>
         <AppLink href="/eventos" className="text-sm text-slate-300 hover:text-white">
           Eventos
+        </AppLink>
+        <AppLink href="/aprovacoes" className="text-sm text-slate-300 hover:text-white">
+          Aprovações
+          {pendingApprovals > 0 && (
+            <span
+              className="ml-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 text-xs font-semibold text-slate-900"
+              aria-label={`${pendingApprovals} aguardando sua decisão`}
+            >
+              {pendingApprovals}
+            </span>
+          )}
         </AppLink>
         <AppLink href="/conflitos" className="text-sm text-slate-300 hover:text-white">
           Conflitos

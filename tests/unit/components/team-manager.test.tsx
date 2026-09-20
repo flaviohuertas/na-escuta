@@ -244,6 +244,16 @@ describe("AppNav", () => {
     expect(screen.queryByRole("link", { name: "Equipe" })).not.toBeInTheDocument();
   });
 
+  it("qualquer pessoa alcança 'Aprovações'; o número só aparece quando há propostas esperando a decisão dela", () => {
+    render(<AppNav userName="Fulana" />);
+    expect(screen.getByRole("link", { name: "Aprovações" })).toHaveAttribute("href", "/aprovacoes");
+    expect(screen.queryByLabelText(/aguardando sua decisão/)).not.toBeInTheDocument();
+
+    cleanup();
+    render(<AppNav userName="Fulana" pendingApprovals={3} />);
+    expect(screen.getByLabelText("3 aguardando sua decisão")).toHaveTextContent("3");
+  });
+
   it("qualquer pessoa alcança 'Trocar senha'", () => {
     render(<AppNav userName="Fulana" />);
     expect(screen.getByRole("link", { name: "Trocar senha" })).toHaveAttribute("href", "/trocar-senha");

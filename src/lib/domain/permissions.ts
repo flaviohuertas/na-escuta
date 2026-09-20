@@ -28,7 +28,20 @@ export function canManageEvent(eventRole: string): boolean {
   return eventRole === "MANAGER";
 }
 
-export const COMPANY_ROLES = ["OWNER", "ADMIN", "PRODUCER", "STAFF", "FREELANCER", "VIEWER"] as const;
+/**
+ * Propor uma correção nos dados do evento: a equipe de campo. O gestor não propõe (edita direto) e
+ * quem só visualiza não mexe em nada.
+ */
+export function canProposeEventChange(eventRole: string): boolean {
+  return eventRole === "FIELD_STAFF";
+}
+
+/** Aprovar ou rejeitar propostas sobre o evento: só o gestor dele. */
+export function canReviewProposals(eventRole: string): boolean {
+  return eventRole === "MANAGER";
+}
+
+export const COMPANY_ROLES =["OWNER", "ADMIN", "PRODUCER", "STAFF", "FREELANCER", "VIEWER"] as const;
 export type CompanyRoleName = (typeof COMPANY_ROLES)[number];
 
 export const EVENT_ROLES = ["MANAGER", "FIELD_STAFF", "VIEWER"] as const;

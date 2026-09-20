@@ -1,7 +1,7 @@
 import { AppLink } from "@/components/ui/AppLink";
 import { requireSession } from "@/lib/auth/require-session";
 import { EVENT_ROLE_LABEL } from "@/lib/domain/event-labels";
-import { canCreateEvents, canManageEvent } from "@/lib/domain/permissions";
+import { canCreateEvents, canManageEvent, canProposeEventChange } from "@/lib/domain/permissions";
 import { getActiveCompanyRole } from "@/server/auth/membership";
 import { listAccessibleEvents } from "@/server/events/accessible-events";
 
@@ -68,6 +68,15 @@ export default async function EventsPage() {
                   {event.location ? ` · ${event.location}` : ""}
                 </p>
               </AppLink>
+              {canProposeEventChange(role) && (
+                <AppLink
+                  href={`/eventos/${event.id}/propor`}
+                  aria-label={`Propor alteração em ${event.name}`}
+                  className="shrink-0 rounded-md border border-slate-300 bg-white px-3 py-2 text-center text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  Propor alteração
+                </AppLink>
+              )}
               {canManageEvent(role) && (
                 <div className="flex shrink-0 flex-col gap-1 sm:flex-row">
                   <AppLink

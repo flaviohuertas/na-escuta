@@ -3,6 +3,8 @@ import {
   assignableCompanyRoles,
   canCreateEvents,
   canManageEvent,
+  canProposeEventChange,
+  canReviewProposals,
   canManageMembers,
   canModifyMember,
 } from "@/lib/domain/permissions";
@@ -25,11 +27,31 @@ describe("permissões por papel", () => {
     expect(canManageEvent("VIEWER")).toBe(false);
   });
 
+  it("propõe correção nos dados do evento: só a equipe de campo (o gestor edita direto; visualização só olha)", () => {
+    expect(canProposeEventChange("FIELD_STAFF")).toBe(true);
+    expect(canProposeEventChange("MANAGER")).toBe(false);
+    expect(canProposeEventChange("VIEWER")).toBe(false);
+  });
+
+  it("decide propostas do evento: só o gestor dele", () => {
+    expect(canReviewProposals("MANAGER")).toBe(true);
+    expect(canReviewProposals("FIELD_STAFF")).toBe(false);
+    expect(canReviewProposals("VIEWER")).toBe(false);
+  });
+
+  it("quem propõe nunca é quem decide (os dois papéis se excluem)", () => {
+    for (const role of ["MANAGER", "FIELD_STAFF", "VIEWER", "", "manager", "SUPERUSER"]) {
+      expect(canProposeEventChange(role) && canReviewProposals(role), role).toBe(false);
+    }
+  });
+
   it("papel desconhecido ou vazio NUNCA pode — falha fechado", () => {
-    for (const role of ["", "owner", "SUPERUSER", "manager"]) {
+    for (const role of ["", "owner", "SUPERUSER", "manager", "field_staff"]) {
       expect(canCreateEvents(role)).toBe(false);
       expect(canManageMembers(role)).toBe(false);
       expect(canManageEvent(role)).toBe(false);
+      expect(canProposeEventChange(role)).toBe(false);
+      expect(canReviewProposals(role)).toBe(false);
     }
   });
 });
