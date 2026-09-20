@@ -8,7 +8,7 @@ import type {
   OpportunityUpdateInput,
   StageMoveInput,
 } from "@/lib/domain/crm.schema";
-import { canManageCrm } from "@/lib/domain/permissions";
+import { canManageBudget, canManageCrm } from "@/lib/domain/permissions";
 import { AdminActionError } from "@/server/errors";
 import { createEventInTx } from "@/server/events/event.service";
 import { lockClient, lockOpportunity, requireCrm, requireCrmAndEventCreation } from "./access";
@@ -162,12 +162,17 @@ export type { HistoryEntry };
 
 /**
  * Uma oportunidade com o cliente, o responsável, o evento que virou e o histórico em palavras —
- * inclusive o das propostas dela (criadas, enviadas, aceitas…), que a auditoria guarda com o id da
- * oportunidade em `metadata`.
+ * inclusive o das propostas dela (criadas, enviadas, aceitas…) e o do orçamento, que a auditoria
+ * guarda com o id da oportunidade em `metadata`.
  */
 export async function getOpportunity(params: { userId: string; companyId: string; opportunityId: string }) {
-  await requireCrm(params.userId, params.companyId);
+  const role = await requireCrm(params.userId, params.companyId);
   const opportunity = await loadOpportunity(params.companyId, params.opportunityId);
+  // O histórico do orçamento traz custos ("custo de R$ X para R$ Y"): só entra para quem pode ver o
+  // orçamento (`canManageBudget`). A produção enxerga a oportunidade, mas não esse rastro.
+  const budgetHistory = canManageBudget(role)
+    ? [{ entityType: "Budget", metadata: { path: ["opportunityId"], equals: opportunity.id } }]
+    : [];
 
   const [client, owner, event, audit] = await Promise.all([
     prisma.client.findUniqueOrThrow({ where: { id: opportunity.clientId }, select: { id: true, name: true, archivedAt: true } }),
@@ -183,6 +188,7 @@ export async function getOpportunity(params: { userId: string; companyId: string
         OR: [
           { entityType: "Opportunity", entityId: opportunity.id },
           { entityType: "Proposal", metadata: { path: ["opportunityId"], equals: opportunity.id } },
+          ...budgetHistory,
         ],
       },
       orderBy: { createdAt: "desc" },

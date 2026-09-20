@@ -1,5 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { canCreateEvents, canManageCrm } from "@/lib/domain/permissions";
+import { canCreateEvents, canManageBudget, canManageCrm } from "@/lib/domain/permissions";
 import { getActiveCompanyRole } from "@/server/auth/membership";
 import { AdminActionError } from "@/server/errors";
 
@@ -11,6 +11,19 @@ export async function requireCrm(userId: string, companyId: string): Promise<str
   const role = await getActiveCompanyRole(userId, companyId);
   if (!role || !canManageCrm(role)) {
     throw new AdminActionError("Você não tem acesso ao comercial desta empresa.", 403);
+  }
+  return role;
+}
+
+/**
+ * O orçamento interno (custos e margem) tem regra própria (`canManageBudget`): só titular e
+ * administração — mais estreita que a do comercial, porque é confidencial da produtora. Papel lido
+ * do BANCO, como no comercial. Devolve o papel na empresa.
+ */
+export async function requireBudget(userId: string, companyId: string): Promise<string> {
+  const role = await getActiveCompanyRole(userId, companyId);
+  if (!role || !canManageBudget(role)) {
+    throw new AdminActionError("Você não tem acesso ao orçamento interno desta empresa.", 403);
   }
   return role;
 }

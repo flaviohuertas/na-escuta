@@ -2,16 +2,19 @@ import { AppLink } from "@/components/ui/AppLink";
 import { ConvertToEventForm } from "@/components/crm/ConvertToEventForm";
 import { StageActions } from "@/components/crm/StageActions";
 import { StageBadge, crmErrorView } from "@/components/crm/CrmParts";
+import { MarginSummary } from "@/components/crm/BudgetParts";
 import { ProposalVersionList } from "@/components/crm/ProposalParts";
 import { requireSession } from "@/lib/auth/require-session";
 import { formatBRL, formatDateBR } from "@/lib/domain/crm";
 import { formatDateTimeBR } from "@/lib/domain/approval-format";
+import { AdminActionError } from "@/server/errors";
+import { getBudgetSummary } from "@/server/crm/budget.service";
 import { getOpportunity } from "@/server/crm/opportunity.service";
 import { listOpportunityProposals } from "@/server/crm/proposal.service";
 
 /**
- * Uma oportunidade: dados, mover no funil, propostas, transformar em evento e o histórico. Ao vivo
- * (exige conexão) e sem cache do Service Worker.
+ * Uma oportunidade: dados, mover no funil, propostas, orçamento interno, transformar em evento e o
+ * histórico. Ao vivo (exige conexão) e sem cache do Service Worker.
  */
 export default async function OpportunityPage({ params }: { params: Promise<{ opportunityId: string }> }) {
   const session = await requireSession();
@@ -20,8 +23,17 @@ export default async function OpportunityPage({ params }: { params: Promise<{ op
   const ctx = { userId: session.user.id, companyId: session.user.companyId };
   let data: Awaited<ReturnType<typeof getOpportunity>>;
   let proposals: Awaited<ReturnType<typeof listOpportunityProposals>>;
+  let budget: Awaited<ReturnType<typeof getBudgetSummary>> | null;
   try {
-    [data, proposals] = await Promise.all([getOpportunity({ ...ctx, opportunityId }), listOpportunityProposals({ ...ctx, opportunityId })]);
+    [data, proposals, budget] = await Promise.all([
+      getOpportunity({ ...ctx, opportunityId }),
+      listOpportunityProposals({ ...ctx, opportunityId }),
+      // Quem cuida do comercial mas não vê o orçamento (regra própria) simplesmente não vê a seção.
+      getBudgetSummary({ ...ctx, opportunityId }).catch((err: unknown) => {
+        if (err instanceof AdminActionError && err.status === 403) return null;
+        throw err;
+      }),
+    ]);
   } catch (err) {
     return crmErrorView(err);
   }
@@ -117,6 +129,22 @@ export default async function OpportunityPage({ params }: { params: Promise<{ op
           </>
         )}
       </section>
+
+      {budget && (
+        <section aria-labelledby="budget" className="mt-8" data-testid="budget-section">
+          <div className="flex items-center justify-between gap-2">
+            <h2 id="budget" className="text-lg font-semibold text-slate-900">
+              Orçamento interno
+            </h2>
+            <AppLink href={`/comercial/oportunidades/${opportunity.id}/orcamento`} className="text-sm font-medium text-brand-700 hover:underline">
+              {budget.budget ? "Abrir orçamento" : budget.blockedReason ? "Ver orçamento" : "Montar orçamento"}
+            </AppLink>
+          </div>
+          <div className="mt-2">
+            <MarginSummary totalCostCents={budget.totals.totalCents} revenue={budget.revenue} margin={budget.margin} hasBudget={budget.budget !== null} />
+          </div>
+        </section>
+      )}
 
       {canConvert && (
         <details className="mt-6 rounded-lg border border-slate-200 bg-white p-4" data-testid="convert-section">

@@ -7,7 +7,7 @@ export type ApiResult<T> = { ok: true; data: T } | { ok: false; message: string;
  * em vez de ficarem penduradas ou fingirem que deram certo. Nunca lança: devolve o erro já em
  * texto para a tela mostrar como está.
  */
-export async function callApi<T>(method: "POST" | "PATCH", url: string, body?: unknown): Promise<ApiResult<T>> {
+export async function callApi<T>(method: "POST" | "PATCH" | "PUT", url: string, body?: unknown): Promise<ApiResult<T>> {
   if (typeof navigator !== "undefined" && navigator.onLine === false) {
     return { ok: false, message: OFFLINE_MESSAGE, status: null };
   }

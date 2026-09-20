@@ -1,9 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { login } from "./helpers/auth";
-import { createClientViaUi, createOpportunityViaUi } from "./helpers/crm";
+import { FUTURE, confirmAction, createClientViaUi, createDraftViaUi, createOpportunityViaUi } from "./helpers/crm";
 
 const FIELD_STAFF_EMAIL = "equipe@naescuta.com.br"; // criado pelo seed: equipe de campo, fora do comercial
-const FUTURE = "2099-12-31";
 
 const nav = (page: Page) => page.getByRole("navigation");
 const main = (page: Page) => page.getByRole("main");
@@ -13,27 +12,6 @@ async function fillItem(page: Page, n: number, description: string, quantity: st
   await page.getByLabel(`Descrição do item ${n}`).fill(description);
   await page.getByLabel(`Quantidade do item ${n}`).fill(quantity);
   await page.getByLabel(`Preço unitário do item ${n}`).fill(price);
-}
-
-/** Cria o rascunho v1 pela tela (dois itens, desconto e validade) e devolve a URL da proposta. */
-async function createDraftViaUi(page: Page, oppUrl: string, validUntil = FUTURE) {
-  await page.goto(oppUrl);
-  await page.getByRole("link", { name: "Nova proposta" }).click();
-  await page.waitForURL(/\/propostas\/nova$/);
-  await fillItem(page, 1, "Som e iluminação", "2", "5.000,00");
-  await page.getByRole("button", { name: "Adicionar item" }).click();
-  await fillItem(page, 2, "Equipe de palco", "1", "1.500,00");
-  await page.getByLabel(/Desconto/).fill("500,00");
-  await page.getByLabel("Válida até").fill(validUntil);
-  await page.getByLabel(/Condições e observações/).fill("Pagamento em 3x");
-  await page.getByRole("button", { name: "Criar rascunho" }).click();
-  await page.waitForURL(/\/comercial\/propostas\/(?!nova)[^/]+$/);
-  return page.url();
-}
-
-async function confirmAction(page: Page, open: string, confirm: string) {
-  await page.getByRole("button", { name: open }).click();
-  await page.getByRole("button", { name: confirm }).click();
 }
 
 test.describe("Propostas comerciais: rascunho → enviada → nova versão → aceita", () => {

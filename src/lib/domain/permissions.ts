@@ -34,6 +34,18 @@ export function canManageCrm(companyRole: string): boolean {
   return COMPANY_ROLES_THAT_MANAGE_CRM.has(companyRole);
 }
 
+/**
+ * Papéis que veem e montam o ORÇAMENTO INTERNO (o custo por trás do preço — e, portanto, a margem):
+ * só o titular e a administração. É informação confidencial da produtora, por isso a regra é própria
+ * e MAIS ESTREITA que a do comercial: a produção cuida de clientes, funil e propostas (vê o preço),
+ * mas não vê custo nem margem. Falha fechada.
+ */
+const COMPANY_ROLES_THAT_MANAGE_BUDGET: ReadonlySet<string> = new Set(["OWNER", "ADMIN"]);
+
+export function canManageBudget(companyRole: string): boolean {
+  return COMPANY_ROLES_THAT_MANAGE_BUDGET.has(companyRole);
+}
+
 /** Editar os dados do evento e convidar/remover pessoas dele: só o gestor do evento. */
 export function canManageEvent(eventRole: string): boolean {
   return eventRole === "MANAGER";

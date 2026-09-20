@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import type { AuditLog } from "@/generated/prisma/client";
+import { describeBudgetHistory } from "@/lib/domain/budget";
 import { describeOpportunityHistory } from "@/lib/domain/crm";
 import { describeProposalHistory } from "@/lib/domain/proposal";
 
@@ -10,11 +11,11 @@ export interface HistoryEntry {
   text: string;
 }
 
-/** A linha do histórico em palavras: o que é de proposta e o que é da oportunidade têm redações próprias. */
+/** A linha do histórico em palavras: proposta, orçamento e oportunidade têm redações próprias. */
 export function describeAudit(entry: Pick<AuditLog, "action" | "beforeJson" | "afterJson" | "metadata">): string {
-  return entry.action.startsWith("PROPOSAL_")
-    ? describeProposalHistory(entry.action, entry.beforeJson, entry.afterJson, entry.metadata)
-    : describeOpportunityHistory(entry.action, entry.beforeJson, entry.afterJson, entry.metadata);
+  if (entry.action.startsWith("PROPOSAL_")) return describeProposalHistory(entry.action, entry.beforeJson, entry.afterJson, entry.metadata);
+  if (entry.action.startsWith("BUDGET_")) return describeBudgetHistory(entry.action, entry.beforeJson, entry.afterJson);
+  return describeOpportunityHistory(entry.action, entry.beforeJson, entry.afterJson, entry.metadata);
 }
 
 /** As linhas da auditoria (já ordenadas) como histórico legível, com o nome de quem fez cada coisa. */

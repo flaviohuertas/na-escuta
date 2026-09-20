@@ -75,6 +75,7 @@ model Company {
   clients       Client[]
   opportunities Opportunity[]
   proposals     Proposal[]
+  budgets       Budget[]
 
   @@map("companies")
 }
@@ -493,6 +494,7 @@ model Opportunity {
   event   Event?  @relation(fields: [eventId], references: [id])
 
   proposals Proposal[]
+  budget    Budget?
 
   @@index([companyId, stage])
   @@index([clientId])
@@ -558,6 +560,48 @@ model ProposalItem {
 
   @@unique([proposalId, position])
   @@map("proposal_items")
+}
+
+// O orçamento INTERNO de uma oportunidade: o custo previsto por trás do preço da proposta. Um só
+// por oportunidade (vivo, editado no lugar; a história fica na auditoria). Confidencial da
+// produtora — nunca aparece no documento da proposta. Os totais NÃO são gravados: saem sempre da
+// soma dos itens (nada a ficar fora de sincronia). Dinheiro em CENTAVOS.
+model Budget {
+  id            String  @id @default(uuid())
+  companyId     String
+  opportunityId String  @unique
+  notes         String?
+
+  version   Int      @default(1)
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company     Company      @relation(fields: [companyId], references: [id])
+  opportunity Opportunity  @relation(fields: [opportunityId], references: [id])
+  items       BudgetItem[]
+
+  @@index([companyId])
+  @@map("budgets")
+}
+
+// Uma linha de custo: `category` é um dos códigos de `BUDGET_CATEGORIES` (texto, validado na borda,
+// para poder ganhar categorias sem migration). `supplier` é texto livre até existir o módulo de fornecedores.
+model BudgetItem {
+  id            String  @id @default(uuid())
+  budgetId      String
+  position      Int
+  category      String
+  description   String
+  quantity      Int
+  unitCostCents Int
+  supplier      String?
+
+  budget Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  @@unique([budgetId, position])
+  @@map("budget_items")
 }
 
 enum PendingApprovalStatus {
