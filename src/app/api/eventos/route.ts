@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth.config";
 import { EventInputSchema } from "@/lib/domain/event.schema";
 import { createEvent } from "@/server/events/event.service";
-import { eventErrorResponse, validationErrorResponse } from "@/server/events/event-http";
+import { domainErrorResponse, validationErrorResponse } from "@/server/http/responses";
 
 /** Cria um evento na empresa da sessão. Exige conexão (é uma ação de gestão, não de campo). */
 export async function POST(request: Request) {
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ event }, { status: 201 });
   } catch (err) {
-    const response = eventErrorResponse(err);
+    const response = domainErrorResponse(err);
     if (response) return response;
     throw err;
   }

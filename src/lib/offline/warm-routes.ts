@@ -132,6 +132,22 @@ export async function areEventRoutesCached(eventId: string): Promise<boolean> {
 }
 
 /**
+ * Tira do cache do navegador as telas DE UM evento (o HTML carrega o nome e dados dele). Usado
+ * quando o acesso ao evento foi retirado. Não toca `/configuracoes/sincronizacao`, que é de todos
+ * os eventos, nem as telas dos outros. Best-effort: nunca lança.
+ */
+export async function clearEventRoutesCache(eventId: string): Promise<void> {
+  if (!cacheStorageAvailable()) return;
+  try {
+    const cache = await caches.open(OFFLINE_PAGES_CACHE_NAME);
+    const routes = eventOfflineRoutes(eventId).filter((route) => route.startsWith("/eventos/"));
+    await Promise.all(routes.map((route) => cache.delete(route, { ignoreSearch: true, ignoreVary: true })));
+  } catch {
+    // Sem permissão/API indisponível: nada a fazer.
+  }
+}
+
+/**
  * Apaga tudo que o navegador guardou POR CAUSA do usuário logado (HTML e payloads RSC
  * carregam nome, dados do evento etc.). Mantém só o pré-cache do build, que contém
  * apenas código público. Chamado no logout — best-effort, nunca bloqueia a saída.

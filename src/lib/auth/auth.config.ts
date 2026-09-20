@@ -1,9 +1,9 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
-import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { AccessStatus } from "@/generated/prisma/enums";
+import { authenticateCredentials } from "@/server/auth/credentials";
+import { isSessionCurrent, readSessionVersion } from "@/server/auth/session-version";
 
 declare module "next-auth" {
   interface Session {
@@ -19,12 +19,9 @@ declare module "next-auth" {
 type AppJwt = Record<string, unknown> & {
   userId?: string;
   companyId?: string | null;
+  /** `User.sessionVersion` no momento do login; ver `server/auth/session-version.ts`. */
+  sessionVersion?: number;
 };
-
-const CredentialsSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-});
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
@@ -36,18 +33,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "E-mail", type: "email" },
         password: { label: "Senha", type: "password" },
       },
-      async authorize(rawCredentials) {
-        const parsed = CredentialsSchema.safeParse(rawCredentials);
-        if (!parsed.success) return null;
-
-        const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
-        if (!user || !user.isActive) return null;
-
-        const validPassword = await bcrypt.compare(parsed.data.password, user.passwordHash);
-        if (!validPassword) return null;
-
-        return { id: user.id, email: user.email, name: user.name };
-      },
+      // A regra (e-mail normalizado, conta ativa, senha) mora em `authenticateCredentials`, onde dá para testá-la.
+      authorize: (rawCredentials) => authenticateCredentials(rawCredentials),
     }),
   ],
   callbacks: {
@@ -55,13 +42,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const t = token as AppJwt;
       if (user?.id) {
         t.userId = user.id;
+        t.sessionVersion = (await readSessionVersion(user.id)) ?? 0;
         const membership = await prisma.membership.findFirst({
           where: { userId: user.id, status: AccessStatus.ACTIVE },
           orderBy: { createdAt: "asc" },
         });
         t.companyId = membership?.companyId ?? null;
+        return t;
       }
-      return t;
+      // Toda leitura de sessão passa por aqui (`auth()` em páginas e rotas): conta desativada ou
+      // versão mudada (senha redefinida, vínculo encerrado) → `null` derruba a sessão e limpa o cookie.
+      return (await isSessionCurrent(t.userId, t.sessionVersion)) ? t : null;
     },
     async session({ session, token }) {
       const t = token as AppJwt;

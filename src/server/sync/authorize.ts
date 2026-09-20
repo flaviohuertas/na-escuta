@@ -14,7 +14,7 @@ export interface EventAuthorization {
 }
 
 /**
- * Revalida no servidor se o usuário ainda tem vínculo ativo com a empresa E
+ * Revalida no servidor se o usuário ainda tem conta ativa, vínculo ativo com a empresa E
  * acesso ativo ao evento — nunca confia no que o grant offline do cliente
  * afirmava no momento em que foi emitido (pode ter sido revogado depois).
  */
@@ -32,8 +32,11 @@ export async function authorizeEventAccess(
 
   const membership = await prisma.membership.findUnique({
     where: { userId_companyId: { userId: ctx.userId, companyId: event.companyId } },
+    // Na mesma consulta (sem ida extra ao banco): conta desativada não sincroniza, mesmo com a
+    // sessão (JWT) ainda válida — desativar a conta tem que valer para quem já está logado.
+    include: { user: { select: { isActive: true } } },
   });
-  if (!membership || membership.status !== AccessStatus.ACTIVE) {
+  if (!membership || membership.status !== AccessStatus.ACTIVE || !membership.user.isActive) {
     return { allowed: false, reason: "MEMBERSHIP_REVOKED" };
   }
 

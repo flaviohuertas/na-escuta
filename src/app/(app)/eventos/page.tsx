@@ -69,13 +69,22 @@ export default async function EventsPage() {
                 </p>
               </AppLink>
               {canManageEvent(role) && (
-                <AppLink
-                  href={`/eventos/${event.id}/editar`}
-                  aria-label={`Editar ${event.name}`}
-                  className="shrink-0 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                >
-                  Editar
-                </AppLink>
+                <div className="flex shrink-0 flex-col gap-1 sm:flex-row">
+                  <AppLink
+                    href={`/eventos/${event.id}/editar`}
+                    aria-label={`Editar ${event.name}`}
+                    className="rounded-md border border-slate-300 bg-white px-3 py-2 text-center text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    Editar
+                  </AppLink>
+                  <AppLink
+                    href={`/eventos/${event.id}/acessos`}
+                    aria-label={`Pessoas de ${event.name}`}
+                    className="rounded-md border border-slate-300 bg-white px-3 py-2 text-center text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    Pessoas
+                  </AppLink>
+                </div>
               )}
             </li>
           ))}

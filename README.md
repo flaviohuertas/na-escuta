@@ -27,7 +27,12 @@ npx prisma migrate deploy   # aplica a migration já gerada em prisma/migrations
 npm run db:seed             # cria empresa/usuário/evento de demonstração (dados fictícios)
 ```
 
-Login de demonstração criado pelo seed: `demo@naescuta.com.br` / `NaEscuta#2026`.
+Logins de demonstração criados pelo seed (mesma senha, `NaEscuta#2026`):
+- `demo@naescuta.com.br` — titular da empresa e gestora do evento (vê tudo, inclusive **Equipe** e as telas de gestão);
+- `equipe@naescuta.com.br` — papel restrito (equipe de campo): serve para ver e testar o que quem não é gestor enxerga.
+
+**Depois de atualizar o código, aplique as migrations e regenere o client** (o Prisma Client gerado não é versionado):
+`npm run db:migrate:deploy && npm run db:generate`. As migrations `20260919160000_user_must_change_password` e `20260920120000_user_session_version` são necessárias para o login e para a leitura de qualquer sessão.
 
 ## Rodando localmente
 

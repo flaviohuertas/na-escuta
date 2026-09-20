@@ -42,6 +42,13 @@ model User {
   passwordHash String
   name         String
   isActive     Boolean  @default(true)
+  // Senha provisória (definida por quem administra a equipe): a pessoa é obrigada a trocá-la no
+  // primeiro acesso, antes de ver qualquer dado.
+  mustChangePassword Boolean @default(false)
+  // Versão das sessões abertas: o JWT guarda a versão do momento do login e o servidor a confere
+  // no banco a cada leitura da sessão. Subir este número (senha redefinida/trocada, vínculo
+  // encerrado) derruba TODAS as sessões abertas da pessoa — o JWT sozinho não é revogável.
+  sessionVersion Int @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

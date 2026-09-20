@@ -95,6 +95,30 @@ describe("prepareEventForOffline", () => {
     resetDbInstanceForTests();
   });
 
+  it("preparar de novo um evento cujo acesso foi retirado (e depois devolvido) o traz de volta e tira o aviso", async () => {
+    // O acesso é devolvido: o aparelho já apagou o evento, então o caminho de volta é preparar
+    // outra vez. O aviso de "acesso retirado" tem de sair — senão a tela seguiria mostrando o painel.
+    const db = getDb();
+    await db.syncState.put({
+      key: eventId,
+      cursor: null,
+      lastSyncAt: "2026-09-19T10:00:00.000Z",
+      lastFullBootstrapAt: null,
+      expectedCounts: null,
+      accessRevokedAt: "2026-09-19T12:00:00.000Z",
+      accessRevokedReason: "EVENT_ACCESS_REVOKED",
+    });
+
+    const result = await prepareEventForOffline(db, eventId, { fetchImpl: makeFetchImpl(makeBootstrapResponse(2)) });
+
+    expect(result.ok).toBe(true);
+    const state = await db.syncState.get(eventId);
+    expect(state?.accessRevokedAt ?? null).toBeNull();
+    expect(state?.accessRevokedReason ?? null).toBeNull();
+    expect(state?.lastFullBootstrapAt).toEqual(expect.any(String));
+    expect(await db.tasks.where("eventId").equals(eventId).count()).toBe(2);
+  });
+
   it("baixa evento e tarefas, e verifica que as contagens batem (evento fica marcado como preparado)", async () => {
     const db = getDb();
     const response = makeBootstrapResponse(2);

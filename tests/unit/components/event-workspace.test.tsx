@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EventWorkspace } from "@/components/events/EventWorkspace";
 import { getDb, resetDbInstanceForTests } from "@/lib/db/dexie/db";
@@ -113,5 +113,103 @@ describe("EventWorkspace", () => {
 
     expect(await screen.findByText("Telas não guardadas")).toBeInTheDocument();
     expect(screen.queryByText("Disponível offline")).not.toBeInTheDocument();
+  });
+
+  describe("acesso ao evento retirado", () => {
+    // O estado que `purgeRevokedEventData` deixa: o evento saiu do aparelho, só o aviso ficou.
+    async function putPurgedState(reason: string | null) {
+      await getDb().syncState.put({
+        key: eventId,
+        cursor: null,
+        lastSyncAt: "2026-09-18T12:00:00.000Z",
+        lastFullBootstrapAt: null,
+        expectedCounts: null,
+        accessRevokedAt: "2026-09-19T12:00:00.000Z",
+        accessRevokedReason: reason,
+      });
+    }
+
+    it("explica, com o motivo em palavras, que o acesso foi retirado e que os dados saíram do aparelho", async () => {
+      await putPurgedState("EVENT_ACCESS_REVOKED");
+      render(<EventWorkspace eventId={eventId} />);
+
+      const alert = await screen.findByRole("alert");
+      expect(alert).toHaveTextContent("Seu acesso a este evento foi retirado.");
+      expect(alert).toHaveTextContent(/foram removidos deste aparelho/);
+      expect(alert).not.toHaveTextContent("EVENT_ACCESS_REVOKED");
+    });
+
+    it("não trata como 'evento ainda não preparado' nem oferece as telas do evento: ele não está mais aqui", async () => {
+      await putPurgedState("EVENT_ACCESS_REVOKED");
+      render(<EventWorkspace eventId={eventId} />);
+
+      await screen.findByRole("alert");
+      expect(screen.queryByText("Evento ainda não preparado")).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "Tarefas" })).not.toBeInTheDocument();
+      // Mas deixa preparar de novo: é o caminho de volta quando o acesso é devolvido.
+      expect(screen.getByRole("button", { name: PREPARE_BUTTON })).toBeInTheDocument();
+    });
+
+    it("mostra o que ficou só neste aparelho (alterações não enviadas) e como agir", async () => {
+      await putPurgedState("EVENT_ACCESS_REVOKED");
+      await getDb().outbox.add({
+        id: "01991b1a-0000-7000-8000-0000000000c1",
+        companyId: "company-1",
+        eventId,
+        entityType: "Task",
+        entityId: "t1",
+        operationType: "CREATE",
+        payload: { title: "Criada em campo" },
+        baseVersion: null,
+        status: "FAILED",
+        attempts: 1,
+        lastAttemptAt: "2026-09-19T11:00:00.000Z",
+        nextAttemptAt: "2026-09-19T11:00:00.000Z",
+        lastError: "EVENT_ACCESS_REVOKED",
+        createdAt: "2026-09-19T10:30:00.000Z",
+        deviceId: "device-1",
+      });
+      render(<EventWorkspace eventId={eventId} />);
+
+      expect(await screen.findByText("1 alteração não enviada")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Exportar alterações não enviadas" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Remover do aparelho" })).toBeInTheDocument();
+    });
+
+    it("um aparelho que ainda tem o evento inteiro com o aviso (dados de antes da limpeza) não mostra o cabeçalho nem os atalhos dele", async () => {
+      // O sync seguinte o limpa; até lá a tela não pode oferecer o que o acesso já não permite.
+      await putEvent();
+      await putPreparedState();
+      await getDb().syncState.update(eventId, {
+        accessRevokedAt: "2026-09-19T12:00:00.000Z",
+        accessRevokedReason: "EVENT_ACCESS_REVOKED",
+      });
+      render(<EventWorkspace eventId={eventId} />);
+
+      await screen.findByRole("alert");
+      expect(screen.queryByRole("heading", { name: "Festival de Teste" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "Tarefas" })).not.toBeInTheDocument();
+    });
+
+    it("sem aviso quando o acesso está normal", async () => {
+      await putEvent();
+      await putPreparedState();
+      render(<EventWorkspace eventId={eventId} />);
+
+      await screen.findByRole("heading", { name: "Festival de Teste" });
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    it("o aviso some quando a preparação regrava o registro (acesso devolvido e evento preparado de novo)", async () => {
+      await putPurgedState("MEMBERSHIP_REVOKED");
+      render(<EventWorkspace eventId={eventId} />);
+      expect(await screen.findByRole("alert")).toBeInTheDocument();
+
+      await putEvent();
+      await putPreparedState();
+
+      await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+      expect(await screen.findByRole("heading", { name: "Festival de Teste" })).toBeInTheDocument();
+    });
   });
 });

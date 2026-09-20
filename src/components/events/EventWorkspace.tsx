@@ -7,6 +7,7 @@ import { getDb } from "@/lib/db/dexie/db";
 import { PrepareOfflineButton } from "@/components/sync/PrepareOfflineButton";
 import { CacheRoutesButton } from "@/components/sync/CacheRoutesButton";
 import { areEventRoutesCached } from "@/lib/offline/warm-routes";
+import { RevokedEventPanel } from "@/components/events/RevokedEventPanel";
 
 function formatDateRange(start: string, end: string): string {
   const fmt = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -27,6 +28,18 @@ export function EventWorkspace({ eventId }: { eventId: string }) {
     async () => Boolean((await getDb().syncState.get(eventId))?.lastFullBootstrapAt),
     [eventId],
     false
+  );
+
+  // O servidor recusou o acesso a este evento (retirado por quem gerencia, vínculo encerrado…) e o
+  // aparelho tirou de si o que o servidor guarda. O aviso some se a pessoa preparar o evento de novo
+  // depois de recuperar o acesso (o registro de sincronização é regravado sem ele).
+  const revoked = useLiveQuery(
+    async () => {
+      const state = await getDb().syncState.get(eventId);
+      return state?.accessRevokedAt ? { reason: state.accessRevokedReason ?? null } : null;
+    },
+    [eventId],
+    null
   );
 
   // As TELAS (HTML) do evento no cache do navegador — verdade lida do Cache Storage a cada
@@ -57,7 +70,7 @@ export function EventWorkspace({ eventId }: { eventId: string }) {
 
   return (
     <div className="mx-auto max-w-3xl">
-      {event ? (
+      {revoked ? null : event ? (
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-xl font-semibold text-slate-900">{event.name}</h1>
@@ -94,6 +107,10 @@ export function EventWorkspace({ eventId }: { eventId: string }) {
         </div>
       )}
 
+      {/* Acesso retirado: o aparelho já tirou de si o que o servidor guarda; o painel mostra o que
+          sobrou (só existe aqui) e deixa a pessoa exportar ou remover. */}
+      {revoked && <RevokedEventPanel eventId={eventId} reason={revoked.reason} />}
+
       {showPrepareButton && (
         <div className="mt-4">
           <PrepareOfflineButton eventId={eventId} />
@@ -110,7 +127,7 @@ export function EventWorkspace({ eventId }: { eventId: string }) {
         </div>
       )}
 
-      {event && (
+      {event && !revoked && (
         <nav className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <AppLink
             href={`/eventos/${eventId}/tarefas`}

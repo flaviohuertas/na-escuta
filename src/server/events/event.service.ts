@@ -32,16 +32,24 @@ function normalize(input: EventParsed) {
   };
 }
 
-/** Só o GESTOR do evento (vínculo ativo na empresa + acesso ativo ao evento, revalidados agora) passa. */
-async function requireEventManager(userId: string, eventId: string): Promise<void> {
+/**
+ * Só o GESTOR do evento (conta ativa, vínculo ativo na empresa e acesso ativo ao evento,
+ * revalidados agora) passa. Devolve a empresa dona do evento.
+ */
+export async function requireEventManager(
+  userId: string,
+  eventId: string,
+  action = "editá-lo"
+): Promise<{ companyId: string }> {
   const auth = await authorizeEventAccess({ userId }, eventId);
   if (!auth.allowed) {
     if (auth.reason === "ENTITY_NOT_FOUND") throw new EventNotFoundError("Evento não encontrado.");
     throw new EventForbiddenError("Você não tem acesso a este evento.");
   }
-  if (!auth.eventRole || !canManageEvent(auth.eventRole)) {
-    throw new EventForbiddenError("Só o gestor do evento pode editá-lo.");
+  if (!auth.eventRole || !canManageEvent(auth.eventRole) || !auth.companyId) {
+    throw new EventForbiddenError(`Só o gestor do evento pode ${action}.`);
   }
+  return { companyId: auth.companyId };
 }
 
 /**

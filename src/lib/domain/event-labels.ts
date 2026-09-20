@@ -13,3 +13,12 @@ export const EVENT_ROLE_LABEL: Record<string, string> = {
   FIELD_STAFF: "Equipe de campo",
   VIEWER: "Visualização",
 };
+
+export const COMPANY_ROLE_LABEL: Record<string, string> = {
+  OWNER: "Titular",
+  ADMIN: "Administração",
+  PRODUCER: "Produção",
+  STAFF: "Equipe",
+  FREELANCER: "Freelancer",
+  VIEWER: "Visualização",
+};

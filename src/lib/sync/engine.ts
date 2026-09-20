@@ -6,11 +6,16 @@ import {
   type PushRequest,
   type PushResponse,
 } from "./protocol";
+import { describeAccessRevoked } from "./access";
 import { eventFromSnapshot } from "./event-local";
 import { computeBackoffDelayMs, recoverIncompleteOperations } from "./outbox";
 
 export class AccessRevokedError extends Error {
-  constructor(message: string) {
+  /** O código que o servidor mandou (`RejectionReason`), para a tela e para o registro no aparelho. */
+  constructor(
+    message: string,
+    public reason: string | null = null
+  ) {
     super(message);
     this.name = "AccessRevokedError";
   }
@@ -103,6 +108,9 @@ export async function applyPullResponse(
         lastSyncAt: new Date().toISOString(),
         lastFullBootstrapAt: currentCursor?.lastFullBootstrapAt ?? null,
         expectedCounts: currentCursor?.expectedCounts ?? null,
+        // Um pull que funcionou é a prova de que o acesso voltou: o aviso de "revogado" sai.
+        accessRevokedAt: null,
+        accessRevokedReason: null,
       });
     }
   );
@@ -291,9 +299,7 @@ export async function pullChanges(
     const parsed = PullResponseSchema.parse(json);
 
     if (parsed.accessRevoked) {
-      throw new AccessRevokedError(
-        parsed.revokedReason ?? "Seu acesso a este evento foi revogado."
-      );
+      throw new AccessRevokedError(describeAccessRevoked(parsed.revokedReason), parsed.revokedReason ?? null);
     }
 
     await applyPullResponse(db, ctx.eventId, parsed);

@@ -3,10 +3,11 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getDb } from "@/lib/db/dexie/db";
+import { checkDeviceStatus } from "@/lib/auth/device-check";
 import { getOrCreateDeviceId } from "@/lib/auth/device-id";
-import { listPreparedEventIds } from "@/lib/sync/bootstrap";
+import { ensureOfflineGrant } from "@/lib/auth/offline-grant-client";
 import { connectivityMonitor, type ConnectivityState } from "@/lib/sync/connectivity";
-import { runFullSyncCycleLocked } from "@/lib/sync/engine";
+import { syncAllPreparedEvents } from "@/lib/sync/sync-all";
 
 export type SyncPhase = "idle" | "syncing" | "error";
 
@@ -34,7 +35,7 @@ export function useSyncStatus(): SyncContextValue {
  * exclusivamente de Background Sync. Percorre todos os eventos já
  * "preparados offline" neste dispositivo (não só o que está aberto na tela).
  */
-export function SyncProvider({ children }: { children: React.ReactNode }) {
+export function SyncProvider({ children, userId }: { children: React.ReactNode; userId?: string }) {
   const [connectivity, setConnectivity] = useState<ConnectivityState>(connectivityMonitor.getState());
   const [phase, setPhase] = useState<SyncPhase>("idle");
   const [lastError, setLastError] = useState<string | null>(null);
@@ -76,12 +77,12 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         setPhase("idle");
         return;
       }
-      const deviceId = getOrCreateDeviceId();
-      const eventIds = await listPreparedEventIds(db);
-      for (const eventId of eventIds) {
-        const result = await runFullSyncCycleLocked(db, { eventId, deviceId });
-        if (result === "skipped-locked") break;
-      }
+      // O grant offline é a identidade do aparelho para o servidor saber, mesmo sem sessão, se ele
+      // ainda vale. Sem ele, quem perder o vínculo nunca é avisado. Falhar aqui não impede o sync.
+      const grant = await ensureOfflineGrant({ userId }).catch(() => "failed" as const);
+      // O servidor recusou emitir (sem sessão ou sem vínculo): pergunta já se o aparelho foi revogado.
+      if (grant === "unauthorized") void checkDeviceStatus(db).catch(() => undefined);
+      await syncAllPreparedEvents(db, { deviceId: getOrCreateDeviceId() });
       setLastSyncAt(new Date().toISOString());
       setPhase("idle");
     } catch (err) {
@@ -90,7 +91,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     } finally {
       syncingRef.current = false;
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     const detach = connectivityMonitor.attachBrowserListeners();

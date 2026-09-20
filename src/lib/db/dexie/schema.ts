@@ -132,6 +132,12 @@ export interface SyncCursor {
   lastSyncAt: string | null;
   lastFullBootstrapAt: string | null;
   expectedCounts: Record<string, number> | null;
+  /**
+   * O servidor recusou o acesso a este evento (ver `markAccessRevoked`). Some sozinho quando um
+   * pull volta a funcionar: os gravadores deste registro não reescrevem estes campos.
+   */
+  accessRevokedAt?: string | null;
+  accessRevokedReason?: string | null;
 }
 
 export interface OfflineSession {
@@ -148,6 +154,20 @@ export interface OfflineSession {
   jwt: string;
   lastVerifiedServerTime: string;
   monotonicAnchorMs: number;
+}
+
+/**
+ * O servidor disse que ESTE APARELHO perdeu o acesso (vínculo encerrado, conta desativada,
+ * dispositivo revogado) e o aparelho se limpou (`purgeDeviceData`). Fica aqui, até a pessoa
+ * decidir o que fazer com o que sobrou, para a tela explicar o que houve em qualquer página —
+ * inclusive a de login, que é onde quem perdeu o vínculo cai.
+ */
+export interface DeviceRevocation {
+  key: "revocation";
+  revokedAt: string;
+  reason: string | null;
+  /** De quem eram os dados (o dono do grant que foi julgado). */
+  userId: string | null;
 }
 
 export type ConflictStatus = "PENDING" | "RESOLVED";
@@ -179,6 +199,7 @@ export class AppDatabase extends Dexie {
   syncState!: EntityTable<SyncCursor, "key">;
   session!: EntityTable<OfflineSession, "key">;
   conflicts!: EntityTable<LocalConflict, "id">;
+  deviceState!: EntityTable<DeviceRevocation, "key">;
 
   constructor() {
     super("na-escuta");
@@ -196,6 +217,12 @@ export class AppDatabase extends Dexie {
       syncState: "key",
       session: "key",
       conflicts: "id, entityType, entityId, status, detectedAt",
+    });
+
+    // v2: só ACRESCENTA a tabela do aviso de aparelho revogado. As tabelas da v1 seguem como estão
+    // (o Dexie as herda) e os dados de quem já usa o app sobrevivem ao upgrade — há teste.
+    this.version(2).stores({
+      deviceState: "key",
     });
   }
 }

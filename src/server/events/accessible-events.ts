@@ -11,6 +11,7 @@ export function listAccessibleEvents(userId: string) {
     where: {
       userId,
       status: AccessStatus.ACTIVE,
+      user: { isActive: true },
       event: {
         deletedAt: null,
         company: { memberships: { some: { userId, status: AccessStatus.ACTIVE } } },

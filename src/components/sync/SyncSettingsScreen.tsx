@@ -54,7 +54,11 @@ export function SyncSettingsScreen() {
             <li key={e.key} className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
               <span className="font-mono text-xs text-slate-500">{e.key}</span>
               {" — "}
-              {e.lastFullBootstrapAt ? "preparado" : "preparação incompleta"}
+              {e.accessRevokedAt
+                ? "acesso retirado — os dados foram removidos deste aparelho"
+                : e.lastFullBootstrapAt
+                  ? "preparado"
+                  : "preparação incompleta"}
               {e.lastSyncAt &&
                 ` · última sincronização: ${new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(e.lastSyncAt))}`}
             </li>

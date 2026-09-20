@@ -51,12 +51,19 @@ async function deriveKey(passphrase: string, salt: Uint8Array, usage: KeyUsage[]
  * 256 bits, chave derivada da senha via PBKDF2/SHA-256, 210k iterações —
  * recomendação OWASP 2023) antes de um logout com limpeza do dispositivo.
  * Sem a senha, o conteúdo é inutilizável — não é "proteção decorativa".
+ *
+ * Com `eventId`, exporta só as pendências daquele evento (a tela de um evento cujo acesso foi
+ * retirado não deve levar junto o que é de outro evento). Só as alterações: os arquivos de
+ * evidência (fotos) NÃO vão no arquivo.
  */
 export async function exportPendingChangesEncrypted(
   db: AppDatabase,
-  passphrase: string
+  passphrase: string,
+  opts: { eventId?: string } = {}
 ): Promise<EncryptedExport> {
-  const outbox = await db.outbox.toArray();
+  const outbox = opts.eventId
+    ? await db.outbox.where("eventId").equals(opts.eventId).toArray()
+    : await db.outbox.toArray();
   const payload: ExportedPendingData = {
     exportedAt: new Date().toISOString(),
     deviceId: outbox[0]?.deviceId ?? "desconhecido",

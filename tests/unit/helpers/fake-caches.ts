@@ -19,6 +19,7 @@ export function installFakeCaches(initial: Record<string, string[]> = {}): Map<s
       const urls = store.get(name)!;
       return {
         match: async (route: string) => (urls.has(route) ? ({} as Response) : undefined),
+        delete: async (route: string) => urls.delete(route),
       };
     },
   });
