@@ -4,7 +4,7 @@ import { SyncProvider } from "@/components/providers/SyncProvider";
 import { SyncStatusBar } from "@/components/sync/SyncStatusBar";
 import { AppNav } from "@/components/layout/AppNav";
 import { prisma } from "@/lib/db/prisma";
-import { canManageMembers } from "@/lib/domain/permissions";
+import { canManageCrm, canManageMembers } from "@/lib/domain/permissions";
 import { countPendingForReview } from "@/server/approvals/approval.service";
 import { getActiveCompanyRole } from "@/server/auth/membership";
 
@@ -31,6 +31,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <AppNav
             userName={session.user.name}
             canManageTeam={companyRole !== null && canManageMembers(companyRole)}
+            canManageCrm={companyRole !== null && canManageCrm(companyRole)}
             pendingApprovals={pendingApprovals}
           />
           <main className="flex-1 p-4 md:p-6">{children}</main>

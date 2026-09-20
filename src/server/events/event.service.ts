@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
-import type { Event } from "@/generated/prisma/client";
+import type { Event, Prisma } from "@/generated/prisma/client";
 import { EventRole } from "@/generated/prisma/enums";
 import type { EventParsed, EventUpdateParsed } from "@/lib/domain/event.schema";
 import { canCreateEvents, canManageEvent } from "@/lib/domain/permissions";
@@ -67,33 +67,43 @@ export async function createEvent(params: {
     throw new EventForbiddenError("Você não tem permissão para criar eventos nesta empresa.");
   }
 
-  const data = normalize(params.input);
+  return prisma.$transaction((tx) => createEventInTx(tx, params));
+}
 
-  return prisma.$transaction(async (tx) => {
-    const event = await tx.event.create({
-      data: {
-        ...data,
-        companyId: params.companyId,
-        createdBy: params.userId,
-        updatedBy: params.userId,
-      },
-    });
-    await tx.eventAccess.create({
-      data: { userId: params.userId, eventId: event.id, role: EventRole.MANAGER, grantedBy: params.userId },
-    });
-    await tx.auditLog.create({
-      data: {
-        companyId: params.companyId,
-        eventId: event.id,
-        userId: params.userId,
-        entityType: "Event",
-        entityId: event.id,
-        action: "CREATE",
-        afterJson: event,
-      },
-    });
-    return event;
+/**
+ * A criação em si (evento + a pessoa como GESTORA + histórico), dentro da transação de quem chama.
+ * Serve a quem precisa que o evento nasça JUNTO de outra mudança — a conversão de uma oportunidade
+ * comercial em evento — ou nenhuma das duas. NÃO confere o papel: quem chama já o conferiu.
+ */
+export async function createEventInTx(
+  tx: Prisma.TransactionClient,
+  params: { userId: string; companyId: string; input: EventParsed; metadata?: Prisma.InputJsonValue }
+): Promise<Event> {
+  const data = normalize(params.input);
+  const event = await tx.event.create({
+    data: {
+      ...data,
+      companyId: params.companyId,
+      createdBy: params.userId,
+      updatedBy: params.userId,
+    },
   });
+  await tx.eventAccess.create({
+    data: { userId: params.userId, eventId: event.id, role: EventRole.MANAGER, grantedBy: params.userId },
+  });
+  await tx.auditLog.create({
+    data: {
+      companyId: params.companyId,
+      eventId: event.id,
+      userId: params.userId,
+      entityType: "Event",
+      entityId: event.id,
+      action: "CREATE",
+      afterJson: event,
+      metadata: params.metadata,
+    },
+  });
+  return event;
 }
 
 /**

@@ -23,6 +23,17 @@ export function canManageMembers(companyRole: string): boolean {
   return COMPANY_ROLES_THAT_MANAGE_MEMBERS.has(companyRole);
 }
 
+/**
+ * Papéis na empresa que cuidam do comercial (clientes, oportunidades e, no futuro, propostas).
+ * Hoje são os mesmos que criam eventos — transformar uma oportunidade ganha em evento é o
+ * fim natural do funil — mas a regra é própria para poder divergir sem tocar na de eventos.
+ */
+const COMPANY_ROLES_THAT_MANAGE_CRM: ReadonlySet<string> = new Set(["OWNER", "ADMIN", "PRODUCER"]);
+
+export function canManageCrm(companyRole: string): boolean {
+  return COMPANY_ROLES_THAT_MANAGE_CRM.has(companyRole);
+}
+
 /** Editar os dados do evento e convidar/remover pessoas dele: só o gestor do evento. */
 export function canManageEvent(eventRole: string): boolean {
   return eventRole === "MANAGER";

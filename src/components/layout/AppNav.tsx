@@ -4,10 +4,13 @@ import { LogoutButton } from "@/components/auth/LogoutButton";
 export function AppNav({
   userName,
   canManageTeam = false,
+  canManageCrm = false,
   pendingApprovals = 0,
 }: {
   userName: string;
   canManageTeam?: boolean;
+  /** O comercial (clientes e funil): só para quem cuida dele. */
+  canManageCrm?: boolean;
   /** Propostas esperando a decisão desta pessoa. */
   pendingApprovals?: number;
 }) {
@@ -23,6 +26,11 @@ export function AppNav({
         <AppLink href="/eventos" className="text-sm text-slate-300 hover:text-white">
           Eventos
         </AppLink>
+        {canManageCrm && (
+          <AppLink href="/comercial" className="text-sm text-slate-300 hover:text-white">
+            Comercial
+          </AppLink>
+        )}
         <AppLink href="/aprovacoes" className="text-sm text-slate-300 hover:text-white">
           Aprovações
           {pendingApprovals > 0 && (

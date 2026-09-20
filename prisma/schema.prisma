@@ -57,6 +57,7 @@ model User {
   devices     Device[]
   approvalsSubmitted PendingApproval[] @relation("ApprovalSubmitter")
   approvalsReviewed  PendingApproval[] @relation("ApprovalReviewer")
+  opportunitiesOwned Opportunity[]     @relation("OpportunityOwner")
 
   @@map("users")
 }
@@ -69,8 +70,10 @@ model Company {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  memberships Membership[]
-  events      Event[]
+  memberships   Membership[]
+  events        Event[]
+  clients       Client[]
+  opportunities Opportunity[]
 
   @@map("companies")
 }
@@ -155,6 +158,8 @@ model Event {
   checklists  ChecklistTemplate[]
   occurrences Occurrence[]
   approvals   PendingApproval[]
+  // A oportunidade comercial de onde este evento nasceu (se nasceu de uma).
+  opportunity Opportunity?
 
   @@index([companyId, updatedAt])
   @@map("events")
@@ -408,6 +413,87 @@ model AuditLog {
   @@index([companyId, createdAt])
   @@index([entityType, entityId])
   @@map("audit_log")
+}
+
+// ---------------------------------------------------------------------------
+// Comercial (CRM): clientes e o funil de oportunidades. Módulo de gestão, ao vivo no servidor
+// (não passa pela outbox nem pelo sync): exige conexão, como criar/editar evento.
+// ---------------------------------------------------------------------------
+
+enum ClientKind {
+  COMPANY
+  PERSON
+}
+
+// Quem contrata. Nunca é apagado: quem deixou de ser cliente é ARQUIVADO (`archivedAt`), e o
+// histórico das oportunidades dele continua legível.
+model Client {
+  id         String     @id @default(uuid())
+  companyId  String
+  name       String
+  kind       ClientKind @default(COMPANY)
+  // CPF ou CNPJ, só dígitos (validado). Único por empresa: o mesmo cliente não é cadastrado duas
+  // vezes (vários sem documento são permitidos — NULL não colide no Postgres).
+  document   String?
+  email      String?
+  phone      String?
+  notes      String?
+
+  version    Int       @default(1)
+  createdBy  String?
+  updatedBy  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  company       Company       @relation(fields: [companyId], references: [id])
+  opportunities Opportunity[]
+
+  @@unique([companyId, document])
+  @@index([companyId, name])
+  @@map("clients")
+}
+
+enum OpportunityStage {
+  NEW
+  CONTACTED
+  PROPOSAL_SENT
+  NEGOTIATION
+  WON
+  LOST
+}
+
+// Um negócio em andamento com um cliente. Ganha → pode virar um Evento (`eventId`, no máximo um).
+model Opportunity {
+  id                 String           @id @default(uuid())
+  companyId          String
+  clientId           String
+  title              String
+  description        String?
+  stage              OpportunityStage @default(NEW)
+  // Valor estimado em CENTAVOS de real (inteiro: nunca ponto flutuante para dinheiro).
+  expectedValueCents Int?
+  expectedStartDate  DateTime?
+  expectedEndDate    DateTime?
+  ownerUserId        String?
+  lostReason         String?
+  closedAt           DateTime?
+  eventId            String?          @unique
+
+  version   Int      @default(1)
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id])
+  client  Client  @relation(fields: [clientId], references: [id])
+  owner   User?   @relation("OpportunityOwner", fields: [ownerUserId], references: [id])
+  event   Event?  @relation(fields: [eventId], references: [id])
+
+  @@index([companyId, stage])
+  @@index([clientId])
+  @@map("opportunities")
 }
 
 enum PendingApprovalStatus {
