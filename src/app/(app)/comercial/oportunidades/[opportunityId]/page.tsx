@@ -2,27 +2,32 @@ import { AppLink } from "@/components/ui/AppLink";
 import { ConvertToEventForm } from "@/components/crm/ConvertToEventForm";
 import { StageActions } from "@/components/crm/StageActions";
 import { StageBadge, crmErrorView } from "@/components/crm/CrmParts";
+import { ProposalVersionList } from "@/components/crm/ProposalParts";
 import { requireSession } from "@/lib/auth/require-session";
 import { formatBRL, formatDateBR } from "@/lib/domain/crm";
 import { formatDateTimeBR } from "@/lib/domain/approval-format";
 import { getOpportunity } from "@/server/crm/opportunity.service";
+import { listOpportunityProposals } from "@/server/crm/proposal.service";
 
 /**
- * Uma oportunidade: dados, mover no funil, transformar em evento e o histórico. Ao vivo (exige
- * conexão) e sem cache do Service Worker.
+ * Uma oportunidade: dados, mover no funil, propostas, transformar em evento e o histórico. Ao vivo
+ * (exige conexão) e sem cache do Service Worker.
  */
 export default async function OpportunityPage({ params }: { params: Promise<{ opportunityId: string }> }) {
   const session = await requireSession();
   const { opportunityId } = await params;
 
+  const ctx = { userId: session.user.id, companyId: session.user.companyId };
   let data: Awaited<ReturnType<typeof getOpportunity>>;
+  let proposals: Awaited<ReturnType<typeof listOpportunityProposals>>;
   try {
-    data = await getOpportunity({ userId: session.user.id, companyId: session.user.companyId, opportunityId });
+    [data, proposals] = await Promise.all([getOpportunity({ ...ctx, opportunityId }), listOpportunityProposals({ ...ctx, opportunityId })]);
   } catch (err) {
     return crmErrorView(err);
   }
   const { opportunity, client, owner, event, history } = data;
   const canConvert = !opportunity.eventId && opportunity.stage !== "LOST";
+  const canCreateProposal = proposals.createBlockedReason === null && proposals.draftId === null;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -89,6 +94,29 @@ export default async function OpportunityPage({ params }: { params: Promise<{ op
       )}
 
       <StageActions opportunityId={opportunity.id} version={opportunity.version} stage={opportunity.stage} hasEvent={opportunity.eventId !== null} />
+
+      <section aria-labelledby="proposals" className="mt-8" data-testid="proposals-section">
+        <div className="flex items-center justify-between gap-2">
+          <h2 id="proposals" className="text-lg font-semibold text-slate-900">
+            Propostas
+          </h2>
+          {canCreateProposal && (
+            <AppLink href={`/comercial/oportunidades/${opportunity.id}/propostas/nova`} className="text-sm font-medium text-brand-700 hover:underline">
+              Nova proposta
+            </AppLink>
+          )}
+        </div>
+        {proposals.rows.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-500">{proposals.createBlockedReason ?? "Nenhuma proposta ainda. Monte os itens e a validade e marque como enviada quando mandar ao cliente."}</p>
+        ) : (
+          <>
+            <ProposalVersionList rows={proposals.rows} />
+            {proposals.draftId && proposals.createBlockedReason === null && (
+              <p className="mt-2 text-xs text-slate-500">Há um rascunho em andamento: continue por ele ou descarte-o para criar outra proposta.</p>
+            )}
+          </>
+        )}
+      </section>
 
       {canConvert && (
         <details className="mt-6 rounded-lg border border-slate-200 bg-white p-4" data-testid="convert-section">

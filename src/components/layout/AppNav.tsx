@@ -15,7 +15,7 @@ export function AppNav({
   pendingApprovals?: number;
 }) {
   return (
-    <nav className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-900 px-4 py-3 text-white md:w-56 md:flex-col md:items-stretch md:border-b-0 md:border-r">
+    <nav className="flex flex-wrap items-center justify-between gap-2 print:hidden border-b border-slate-200 bg-slate-900 px-4 py-3 text-white md:w-56 md:flex-col md:items-stretch md:border-b-0 md:border-r">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 md:flex-col md:items-stretch md:gap-1">
         <AppLink href="/eventos" className="font-semibold">
           Na Escuta

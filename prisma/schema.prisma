@@ -74,6 +74,7 @@ model Company {
   events        Event[]
   clients       Client[]
   opportunities Opportunity[]
+  proposals     Proposal[]
 
   @@map("companies")
 }
@@ -491,9 +492,72 @@ model Opportunity {
   owner   User?   @relation("OpportunityOwner", fields: [ownerUserId], references: [id])
   event   Event?  @relation(fields: [eventId], references: [id])
 
+  proposals Proposal[]
+
   @@index([companyId, stage])
   @@index([clientId])
   @@map("opportunities")
+}
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  SUPERSEDED
+}
+
+// Uma proposta comercial para uma oportunidade. Cada linha é uma VERSÃO (`number`: 1, 2, 3…): a
+// proposta enviada nunca é editada — para mudar, cria-se a versão seguinte, e a anterior vira
+// SUBSTITUÍDA quando a nova é enviada. Por oportunidade há no máximo um RASCUNHO e no máximo uma
+// ENVIADA (garantido sob a trava da linha da oportunidade). Dinheiro em CENTAVOS; os totais são
+// SEMPRE calculados pelo servidor a partir dos itens. "Enviada" só REGISTRA que a pessoa mandou a
+// proposta por fora — o sistema não envia nada.
+model Proposal {
+  id            String         @id @default(uuid())
+  companyId     String
+  opportunityId String
+  number        Int
+  status        ProposalStatus @default(DRAFT)
+  // Só a data (o último dia de validade), sem fuso — por isso @db.Date.
+  validUntil    DateTime?      @db.Date
+  notes         String?
+  subtotalCents Int
+  discountCents Int            @default(0)
+  totalCents    Int
+  sentAt        DateTime?
+  sentBy        String?
+  decidedAt     DateTime?
+  decidedBy     String?
+  decisionNote  String?
+
+  version   Int      @default(1)
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company     Company        @relation(fields: [companyId], references: [id])
+  opportunity Opportunity    @relation(fields: [opportunityId], references: [id])
+  items       ProposalItem[]
+
+  @@unique([opportunityId, number])
+  @@index([companyId, status])
+  @@map("proposals")
+}
+
+model ProposalItem {
+  id             String @id @default(uuid())
+  proposalId     String
+  position       Int
+  description    String
+  quantity       Int
+  unitPriceCents Int
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@unique([proposalId, position])
+  @@map("proposal_items")
 }
 
 enum PendingApprovalStatus {

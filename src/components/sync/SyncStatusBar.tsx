@@ -17,7 +17,7 @@ export function SyncStatusBar() {
 
   return (
     <div
-      className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-200 bg-white px-4 py-2 text-sm"
+      className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-200 bg-white px-4 py-2 text-sm print:hidden"
       role="status"
       aria-live="polite"
     >

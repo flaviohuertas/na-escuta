@@ -5,7 +5,7 @@ import { EventInputSchema } from "./event.schema";
 import { EmailSchema } from "./team.schema";
 
 /** Texto opcional: em branco vira "sem valor" (null), nunca uma string vazia gravada. */
-const optionalText = (max: number) =>
+export const optionalText = (max: number) =>
   z
     .string()
     .trim()

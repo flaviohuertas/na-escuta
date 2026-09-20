@@ -32,7 +32,7 @@ Logins de demonstração criados pelo seed (mesma senha, `NaEscuta#2026`):
 - `equipe@naescuta.com.br` — papel restrito (equipe de campo): serve para ver e testar o que quem não é gestor enxerga.
 
 **Depois de atualizar o código, aplique as migrations e regenere o client** (o Prisma Client gerado não é versionado):
-`npm run db:migrate:deploy && npm run db:generate`. As migrations `20260919160000_user_must_change_password` e `20260920120000_user_session_version` são necessárias para o login e para a leitura de qualquer sessão; `20260920190000_pending_approval_relations` é necessária para o fluxo de aprovação (`/aprovacoes`); `20260920210000_crm_clients_opportunities` é necessária para o comercial (`/comercial`).
+`npm run db:migrate:deploy && npm run db:generate`. As migrations `20260919160000_user_must_change_password` e `20260920120000_user_session_version` são necessárias para o login e para a leitura de qualquer sessão; `20260920190000_pending_approval_relations` é necessária para o fluxo de aprovação (`/aprovacoes`); `20260920210000_crm_clients_opportunities` é necessária para o comercial (`/comercial`); `20260920230000_proposals` é necessária para as propostas comerciais (`/comercial/propostas`).
 
 ## Rodando localmente
 

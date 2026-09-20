@@ -85,16 +85,20 @@ const stageLabel = (stage: unknown): string =>
 /**
  * Uma linha do histórico da oportunidade, em palavras, a partir do que o servidor gravou na
  * auditoria (`action` + o estado antes e depois). Ação desconhecida sai como veio — nunca some.
+ * Quando a etapa mudou por causa de uma proposta (enviada ou aceita), a auditoria guarda o número
+ * dela em `metadata.viaProposalNumber` e a linha diz isso.
  */
-export function describeOpportunityHistory(action: string, before: unknown, after: unknown): string {
+export function describeOpportunityHistory(action: string, before: unknown, after: unknown, metadata?: unknown): string {
   const b = (before ?? {}) as Record<string, unknown>;
   const a = (after ?? {}) as Record<string, unknown>;
+  const m = (metadata ?? {}) as Record<string, unknown>;
   switch (action) {
     case "OPPORTUNITY_CREATED":
       return "Oportunidade criada.";
     case "OPPORTUNITY_STAGE_CHANGED": {
       const reason = typeof a.lostReason === "string" && a.lostReason ? ` — motivo: ${a.lostReason}` : "";
-      return `Etapa: ${stageLabel(b.stage)} → ${stageLabel(a.stage)}${reason}`;
+      const via = typeof m.viaProposalNumber === "number" ? ` (pela proposta v${m.viaProposalNumber})` : "";
+      return `Etapa: ${stageLabel(b.stage)} → ${stageLabel(a.stage)}${reason}${via}`;
     }
     case "OPPORTUNITY_UPDATED": {
       const changed = Object.keys(OPPORTUNITY_FIELD_LABEL).filter((key) => JSON.stringify(b[key] ?? null) !== JSON.stringify(a[key] ?? null));

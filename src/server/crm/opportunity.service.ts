@@ -1,13 +1,7 @@
 import { prisma } from "@/lib/db/prisma";
 import type { Opportunity, Prisma } from "@/generated/prisma/client";
 import { AccessStatus, OpportunityStage } from "@/generated/prisma/enums";
-import {
-  OPEN_STAGES,
-  describeOpportunityHistory,
-  explainBlockedMove,
-  isOpenStage,
-  type OpportunityStageName,
-} from "@/lib/domain/crm";
+import { OPEN_STAGES, explainBlockedMove, isOpenStage, type OpportunityStageName } from "@/lib/domain/crm";
 import type {
   ConvertToEventInput,
   OpportunityInput,
@@ -18,6 +12,7 @@ import { canManageCrm } from "@/lib/domain/permissions";
 import { AdminActionError } from "@/server/errors";
 import { createEventInTx } from "@/server/events/event.service";
 import { lockClient, lockOpportunity, requireCrm, requireCrmAndEventCreation } from "./access";
+import { toHistory, type HistoryEntry } from "./history";
 
 const OPEN_CAP = 500;
 const CLOSED_SHOWN = 30;
@@ -56,7 +51,8 @@ const toCard = (row: CardRow): OpportunityCard => ({
   closedAt: row.closedAt,
 });
 
-function snapshot(o: Opportunity) {
+/** O que a auditoria guarda da oportunidade (antes/depois). Também usado ao mudar a etapa por uma proposta. */
+export function opportunitySnapshot(o: Opportunity) {
   return {
     clientId: o.clientId,
     title: o.title,
@@ -70,6 +66,7 @@ function snapshot(o: Opportunity) {
     eventId: o.eventId,
   };
 }
+const snapshot = opportunitySnapshot;
 
 async function loadOpportunity(companyId: string, opportunityId: string): Promise<Opportunity> {
   const found = await prisma.opportunity.findFirst({ where: { id: opportunityId, companyId } });
@@ -161,14 +158,13 @@ export async function listPipeline(params: { userId: string; companyId: string }
   return { columns, won: won.map(toCard), lost: lost.map(toCard), truncated: open.length > OPEN_CAP };
 }
 
-export interface HistoryEntry {
-  id: string;
-  at: Date;
-  actorName: string | null;
-  text: string;
-}
+export type { HistoryEntry };
 
-/** Uma oportunidade com o cliente, o responsável, o evento que virou e o histórico em palavras. */
+/**
+ * Uma oportunidade com o cliente, o responsável, o evento que virou e o histórico em palavras —
+ * inclusive o das propostas dela (criadas, enviadas, aceitas…), que a auditoria guarda com o id da
+ * oportunidade em `metadata`.
+ */
 export async function getOpportunity(params: { userId: string; companyId: string; opportunityId: string }) {
   await requireCrm(params.userId, params.companyId);
   const opportunity = await loadOpportunity(params.companyId, params.opportunityId);
@@ -182,24 +178,19 @@ export async function getOpportunity(params: { userId: string; companyId: string
       ? prisma.event.findUnique({ where: { id: opportunity.eventId }, select: { id: true, name: true } })
       : Promise.resolve(null),
     prisma.auditLog.findMany({
-      where: { companyId: params.companyId, entityType: "Opportunity", entityId: opportunity.id },
+      where: {
+        companyId: params.companyId,
+        OR: [
+          { entityType: "Opportunity", entityId: opportunity.id },
+          { entityType: "Proposal", metadata: { path: ["opportunityId"], equals: opportunity.id } },
+        ],
+      },
       orderBy: { createdAt: "desc" },
       take: HISTORY_LIMIT,
     }),
   ]);
 
-  const actorIds = [...new Set(audit.map((a) => a.userId).filter((id): id is string => id !== null))];
-  const actors = actorIds.length
-    ? await prisma.user.findMany({ where: { id: { in: actorIds } }, select: { id: true, name: true } })
-    : [];
-  const nameOf = new Map(actors.map((a) => [a.id, a.name]));
-
-  const history: HistoryEntry[] = audit.map((a) => ({
-    id: a.id,
-    at: a.createdAt,
-    actorName: a.userId ? (nameOf.get(a.userId) ?? null) : null,
-    text: describeOpportunityHistory(a.action, a.beforeJson, a.afterJson),
-  }));
+  const history = await toHistory(audit);
 
   return { opportunity, client, owner, event, history };
 }

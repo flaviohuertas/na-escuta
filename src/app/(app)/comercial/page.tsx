@@ -30,6 +30,9 @@ export default async function CommercialPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <AppLink href="/comercial/propostas" className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+            Propostas
+          </AppLink>
           <AppLink href="/comercial/clientes" className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
             Clientes
           </AppLink>
