@@ -43,3 +43,15 @@ npm-debug.log*
 /public/swe-worker*.js.map
 
 /src/generated/prisma
+
+# skills de design instaladas para os agentes de código: as mesmas sete, copiadas em cada pasta de agente
+# (.claude, .agents, .cursor, .github, .kiro, ...), uns 90 MB de conteúdo repetido. Ficam só na máquina de
+# quem as instala; as skills do Prisma, já versionadas, não são afetadas.
+/.*/*/banner-design/
+/.*/*/brand/
+/.*/*/design/
+/.*/*/design-system/
+/.*/*/slides/
+/.*/*/ui-styling/
+/.*/*/ui-ux-pro-max/
+/.github/prompts/ui-ux-pro-max.prompt.md
