@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncStatus } from "@/components/providers/SyncProvider";
+import { buttonClass } from "@/components/ui/Button";
 
 function formatTime(iso: string | null): string {
   if (!iso) return "nunca";
@@ -17,7 +18,7 @@ export function SyncStatusBar() {
 
   return (
     <div
-      className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-200 bg-white px-4 py-2 text-sm print:hidden"
+      className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line bg-white px-4 py-2 text-sm print:hidden md:px-8"
       role="status"
       aria-live="polite"
     >
@@ -51,7 +52,7 @@ export function SyncStatusBar() {
         type="button"
         onClick={() => void syncNow()}
         disabled={phase === "syncing" || !isOnline}
-        className="ml-auto rounded-md border border-slate-300 px-3 py-1 font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50 hover:bg-slate-50"
+        className={buttonClass({ variant: "secondary", size: "sm", className: "ml-auto max-md:h-11" })}
       >
         Sincronizar agora
       </button>

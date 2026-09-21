@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getDb, wipeLocalDatabase } from "@/lib/db/dexie/db";
@@ -9,7 +9,13 @@ import { clearUserScopedCaches } from "@/lib/offline/warm-routes";
 
 type Step = "confirm" | "export" | "exporting";
 
-export function LogoutButton() {
+/**
+ * `className` troca a aparência do botão que abre o diálogo (o padrão é para fundo escuro). O menu
+ * tem duas instâncias — barra lateral e "Mais" do celular —, por isso os ids vêm de `useId`.
+ */
+export function LogoutButton({ className }: { className?: string } = {}) {
+  const titleId = useId();
+  const passphraseId = useId();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [step, setStep] = useState<Step>("confirm");
   const [passphrase, setPassphrase] = useState("");
@@ -78,7 +84,7 @@ export function LogoutButton() {
       <button
         type="button"
         onClick={openDialog}
-        className="rounded-md border border-slate-600 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-800"
+        className={className ?? "rounded-md border border-slate-600 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-800"}
       >
         Sair
       </button>
@@ -86,10 +92,10 @@ export function LogoutButton() {
       <dialog
         ref={dialogRef}
         className="w-[min(28rem,90vw)] rounded-lg border border-slate-200 p-0 backdrop:bg-black/40"
-        aria-labelledby="logout-dialog-title"
+        aria-labelledby={titleId}
       >
         <div className="p-5">
-          <h2 id="logout-dialog-title" className="text-lg font-semibold text-slate-900">
+          <h2 id={titleId} className="text-lg font-semibold text-slate-900">
             Sair da conta
           </h2>
 
@@ -112,11 +118,11 @@ export function LogoutButton() {
 
           {step === "export" || step === "exporting" ? (
             <div className="mt-4 space-y-2">
-              <label htmlFor="export-passphrase" className="block text-sm font-medium text-slate-700">
+              <label htmlFor={passphraseId} className="block text-sm font-medium text-slate-700">
                 Senha para proteger o arquivo exportado
               </label>
               <input
-                id="export-passphrase"
+                id={passphraseId}
                 type="password"
                 value={passphrase}
                 onChange={(e) => setPassphrase(e.target.value)}

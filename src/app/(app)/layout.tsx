@@ -25,18 +25,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <SyncProvider userId={session.user.id}>
-      <div className="flex min-h-dvh flex-col">
-        <SyncStatusBar />
-        <div className="flex flex-1 flex-col md:flex-row">
-          <AppNav
-            userName={session.user.name}
-            canManageTeam={companyRole !== null && canManageMembers(companyRole)}
-            canManageCrm={companyRole !== null && canManageCrm(companyRole)}
-            canManageFinance={companyRole !== null && canManageFinance(companyRole)}
-            canManageSuppliers={companyRole !== null && canManageSuppliers(companyRole)}
-            pendingApprovals={pendingApprovals}
-          />
-          <main className="flex-1 p-4 md:p-6">{children}</main>
+      {/* Desktop: barra lateral em altura total + coluna do conteúdo. Celular: a barra de abas fica
+          fixa embaixo (o `pb-28` do conteúdo a deixa livre) e o menu completo abre em "Mais". */}
+      <div className="min-h-dvh md:flex">
+        <AppNav
+          userName={session.user.name}
+          canManageTeam={companyRole !== null && canManageMembers(companyRole)}
+          canManageCrm={companyRole !== null && canManageCrm(companyRole)}
+          canManageFinance={companyRole !== null && canManageFinance(companyRole)}
+          canManageSuppliers={companyRole !== null && canManageSuppliers(companyRole)}
+          pendingApprovals={pendingApprovals}
+        />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <SyncStatusBar />
+          <main className="flex-1 p-4 pb-28 md:p-8">{children}</main>
         </div>
       </div>
     </SyncProvider>

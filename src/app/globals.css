@@ -1,18 +1,50 @@
 @import "tailwindcss";
 
+/*
+ * Identidade "Sinal": papel quente, tinta e um laranja de sinalização.
+ * Referência visual e regras de uso: docs/design/README.md.
+ *
+ * O Tailwind gera as classes a partir destas variáveis. A escala `slate` foi REMAPEADA para
+ * neutros quentes (todo `text-slate-*`, `border-slate-*` do sistema segue valendo, já na paleta
+ * nova) e `brand` é a escala do laranja. O contraste conferido está nos comentários.
+ */
 @theme {
-  --font-sans: var(--font-inter), system-ui, sans-serif;
+  /* Os nomes `--font-bricolage`/`--font-instrument` vêm do next/font (layout.tsx). */
+  --font-sans: var(--font-instrument), system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-instrument), system-ui, sans-serif;
 
-  --color-brand-50: #eef4ff;
-  --color-brand-100: #d9e6ff;
-  --color-brand-200: #b3ccff;
-  --color-brand-300: #80a8ff;
-  --color-brand-400: #4d7dff;
-  --color-brand-500: #2657f5;
-  --color-brand-600: #1a41c9;
-  --color-brand-700: #17359e;
-  --color-brand-800: #172c7d;
-  --color-brand-900: #172768;
+  /* Marca: 600 é o botão primário (texto branco, contraste 5,2:1); 500 é o "brilho", só para
+     gráficos e detalhes sobre fundo escuro. */
+  --color-brand-50: #fff3ec;
+  --color-brand-100: #ffe3d4;
+  --color-brand-200: #ffc7a9;
+  --color-brand-300: #ff9f6e;
+  --color-brand-400: #ff7a3f;
+  --color-brand-500: #ff5a1f;
+  --color-brand-600: #c8380a;
+  --color-brand-700: #a62f08;
+  --color-brand-800: #862606;
+  --color-brand-900: #661d05;
+
+  /* Neutros quentes. 400 em diante passa de 4,5:1 sobre branco e sobre o papel (texto pequeno). */
+  --color-slate-50: #faf8f3;
+  --color-slate-100: #f3eee5;
+  --color-slate-200: #e5ddcf;
+  --color-slate-300: #d2c8b6;
+  --color-slate-400: #766d5e;
+  --color-slate-500: #5f584b;
+  --color-slate-600: #4a453b;
+  --color-slate-700: #37342d;
+  --color-slate-800: #25272c;
+  --color-slate-900: #16181d;
+  --color-slate-950: #0e0f12;
+
+  /* Superfícies e linhas. `ink-muted` é o cinza legível SOBRE a tinta (contraste 6,9:1). */
+  --color-ink: #16181d;
+  --color-ink-soft: #2b2e36;
+  --color-ink-muted: #a7a196;
+  --color-paper: #f6f2ea;
+  --color-line: #e2dacb;
 
   --color-status-offline: #6b7280;
   --color-status-pending: #d97706;
@@ -27,8 +59,30 @@
 }
 
 body {
-  background: #f5f6fa;
-  color: #12172b;
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+/* Foco visível para teclado em tudo que é clicável (campos já têm o anel deles). */
+@layer base {
+  a:focus-visible,
+  button:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+  }
+}
+
+/*
+ * Títulos na fonte de exibição. Fora de qualquer @layer de propósito: as telas antigas declaram
+ * `font-semibold` nos `h1`/`h2`, e regra sem camada vence utilitário — assim o peso é o da marca
+ * sem tocar em cada tela.
+ */
+h1,
+h2 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 @media (max-width: 480px) {

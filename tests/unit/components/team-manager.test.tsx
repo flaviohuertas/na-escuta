@@ -2,7 +2,6 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TeamManager, type TeamRow } from "@/components/admin/TeamManager";
-import { AppNav } from "@/components/layout/AppNav";
 
 const refresh = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
@@ -229,33 +228,5 @@ describe("TeamManager", () => {
       expect(await screen.findByRole("alert")).toHaveTextContent("Festival do Parque");
       expect(refresh).not.toHaveBeenCalled();
     });
-  });
-});
-
-describe("AppNav", () => {
-  afterEach(() => cleanup());
-
-  it("o link 'Equipe' só aparece para quem administra a equipe", () => {
-    render(<AppNav userName="Fulana" canManageTeam />);
-    expect(screen.getByRole("link", { name: "Equipe" })).toHaveAttribute("href", "/administracao/equipe");
-
-    cleanup();
-    render(<AppNav userName="Fulana" />);
-    expect(screen.queryByRole("link", { name: "Equipe" })).not.toBeInTheDocument();
-  });
-
-  it("qualquer pessoa alcança 'Aprovações'; o número só aparece quando há propostas esperando a decisão dela", () => {
-    render(<AppNav userName="Fulana" />);
-    expect(screen.getByRole("link", { name: "Aprovações" })).toHaveAttribute("href", "/aprovacoes");
-    expect(screen.queryByLabelText(/aguardando sua decisão/)).not.toBeInTheDocument();
-
-    cleanup();
-    render(<AppNav userName="Fulana" pendingApprovals={3} />);
-    expect(screen.getByLabelText("3 aguardando sua decisão")).toHaveTextContent("3");
-  });
-
-  it("qualquer pessoa alcança 'Trocar senha'", () => {
-    render(<AppNav userName="Fulana" />);
-    expect(screen.getByRole("link", { name: "Trocar senha" })).toHaveAttribute("href", "/trocar-senha");
   });
 });

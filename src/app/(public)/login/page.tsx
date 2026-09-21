@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
+import { Button } from "@/components/ui/Button";
+import { LogoMark, Wordmark } from "@/components/ui/Logo";
 import { auth, signIn } from "@/lib/auth/auth.config";
 
 async function loginAction(formData: FormData) {
@@ -29,10 +31,15 @@ export default async function LoginPage({
   const { erro } = await searchParams;
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-semibold text-slate-900">Na Escuta</h1>
-        <p className="mt-1 text-sm text-slate-500">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-4 py-8">
+      <div className="flex items-center gap-3">
+        <LogoMark size={56} />
+        <h1 className="text-4xl">
+          <Wordmark />
+        </h1>
+      </div>
+      <div className="w-full max-w-sm rounded-2xl border border-line bg-white p-6 shadow-sm">
+        <p className="text-sm text-slate-500">
           Entre com sua conta. A primeira utilização neste dispositivo exige conexão com a
           internet.
         </p>
@@ -70,12 +77,9 @@ export default async function LoginPage({
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
             />
           </div>
-          <button
-            type="submit"
-            className="w-full rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400"
-          >
+          <Button type="submit" className="w-full">
             Entrar
-          </button>
+          </Button>
         </form>
 
         <p className="mt-4 text-xs text-slate-400">

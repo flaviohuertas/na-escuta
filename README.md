@@ -74,7 +74,8 @@ src/lib/repositories/       CRUD local (Dexie) — grava entidade + outbox na me
 src/lib/sync/               motor de sincronização (outbox, engine, connectivity, bootstrap, protocol)
 src/lib/auth/                autenticação + sessão offline (EdDSA, âncora de relógio monotônica)
 src/server/sync/             serviços server-side de push/pull/bootstrap/conflitos (revalidam permissão sempre)
-src/components/              UI (React, Tailwind)
+src/components/              UI (React, Tailwind) — ui/ (Button, Badge, Icon, Logo), layout/ (menu)
+docs/design/                 identidade visual "Sinal": paleta, tipografia e regras de uso
 src/worker/service-worker.ts  Service Worker (Serwist)
 tests/unit/                  Vitest + fake-indexeddb — rodam sem Postgres
 tests/integration/            Vitest contra Postgres real — não rodam sem Docker
