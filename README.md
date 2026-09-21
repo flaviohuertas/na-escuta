@@ -57,6 +57,8 @@ npm run start
 npm run test              # unitários — não dependem de Postgres (fake-indexeddb simula o IndexedDB)
 npm run test:integration  # exige Postgres real rodando (docker compose up -d && prisma migrate deploy)
 npm run test:e2e          # Playwright — exige build de produção + Postgres + `npx playwright install`
+                          #   inclui acessibilidade (axe) e aparência (capturas de referência por sistema: ver docs/design)
+                          #   E2E_WEBKIT=1 acrescenta o menu do celular no Safari (npx playwright install webkit)
 npm run typecheck
 npm run lint
 ```

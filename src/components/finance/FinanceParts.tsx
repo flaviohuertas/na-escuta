@@ -125,7 +125,7 @@ export function ComparisonTable({ comparison }: { comparison: BudgetComparison }
   if (comparison.rows.length === 0) return <p className="mt-2 text-sm text-slate-500">Nada previsto nem lançado ainda.</p>;
 
   return (
-    <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200 bg-white">
+    <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200 bg-white" role="region" aria-label="Comparação entre previsto e lançado" tabIndex={0}>
       <table className="w-full text-left text-sm" data-testid="comparison-table">
         <caption className="sr-only">Previsto e realizado por categoria</caption>
         <thead>
@@ -222,7 +222,7 @@ export function ExpenseList({ eventId, expenses }: { eventId: string; expenses: 
                   <>
                     {" · "}
                     {expense.supplierId ? (
-                      <AppLink href={`/fornecedores/${expense.supplierId}`} className="text-brand-700 hover:underline" data-testid="supplier-link">
+                      <AppLink href={`/fornecedores/${expense.supplierId}`} className="text-brand-700 underline underline-offset-2 hover:text-brand-800" data-testid="supplier-link">
                         {expense.supplier}
                       </AppLink>
                     ) : (

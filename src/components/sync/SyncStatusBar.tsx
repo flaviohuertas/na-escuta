@@ -2,6 +2,7 @@
 
 import { useSyncStatus } from "@/components/providers/SyncProvider";
 import { buttonClass } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 
 function formatTime(iso: string | null): string {
   if (!iso) return "nunca";
@@ -46,15 +47,23 @@ export function SyncStatusBar() {
         <span className="text-status-error">Erro ao sincronizar: {lastError}</span>
       )}
 
-      <span className="text-slate-500">Última sincronização: {formatTime(lastSyncAt)}</span>
+      {/* No celular, enquanto sincroniza, o horário da última vez é informação velha e, somado a
+          "Sincronizando…", faria a barra quebrar em duas linhas (medido no Safari). */}
+      <span className={`text-slate-500 ${phase === "syncing" ? "max-sm:hidden" : ""}`}>
+        <span className="sm:hidden">Última: </span>
+        <span className="max-sm:hidden">Última sincronização: </span>
+        {formatTime(lastSyncAt)}
+      </span>
 
+      {/* No celular vira só o ícone (44 × 44) para a barra caber numa linha; o nome acessível segue o mesmo. */}
       <button
         type="button"
         onClick={() => void syncNow()}
         disabled={phase === "syncing" || !isOnline}
-        className={buttonClass({ variant: "secondary", size: "sm", className: "ml-auto max-md:h-11" })}
+        className={buttonClass({ variant: "secondary", size: "sm", className: "ml-auto max-sm:size-11 max-sm:px-0" })}
       >
-        Sincronizar agora
+        <Icon name="sincronizacao" size={18} className="sm:hidden" />
+        <span className="max-sm:sr-only">Sincronizar agora</span>
       </button>
     </div>
   );

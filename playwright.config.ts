@@ -21,7 +21,14 @@ export default defineConfig({
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    // Opcional (E2E_WEBKIT=1; exige `npx playwright install webkit`): o menu do celular no motor do
+    // Safari, com o iPhone 13 emulado (toque, tela pequena). Não substitui um aparelho de verdade.
+    ...(process.env.E2E_WEBKIT
+      ? [{ name: "webkit-iphone", use: { ...devices["iPhone 13"] }, testMatch: /navigation\.spec\.ts/, grep: /@celular/ }]
+      : []),
+  ],
   webServer: {
     command: "npm run build && npm run start",
     url: "http://localhost:3000",

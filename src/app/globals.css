@@ -46,10 +46,12 @@
   --color-paper: #f6f2ea;
   --color-line: #e2dacb;
 
+  /* Estados também aparecem como TEXTO (pendentes, "preparado"), por isso passam de 4,5:1 sobre
+     branco e sobre o papel — o laranja e o verde "de semáforo" comuns não passavam (3,2:1 e 3,3:1). */
   --color-status-offline: #6b7280;
-  --color-status-pending: #d97706;
+  --color-status-pending: #a34f07;
   --color-status-syncing: #2563eb;
-  --color-status-synced: #16a34a;
+  --color-status-synced: #166534;
   --color-status-conflict: #dc2626;
   --color-status-error: #b91c1c;
 }
@@ -67,7 +69,8 @@ body {
 @layer base {
   a:focus-visible,
   button:focus-visible,
-  summary:focus-visible {
+  summary:focus-visible,
+  [tabindex="0"]:focus-visible {
     outline: 2px solid var(--color-brand-600);
     outline-offset: 2px;
   }

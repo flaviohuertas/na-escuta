@@ -87,7 +87,7 @@ export function BudgetTable({ items, totals }: { items: BudgetTableItem[]; total
               {formatBRL(group.subtotalCents)}
             </span>
           </header>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" role="region" aria-label={`Itens de ${categoryLabel(group.category)}`} tabIndex={0}>
             <table className="w-full text-left text-sm">
               <caption className="sr-only">Itens de {categoryLabel(group.category)}</caption>
               <thead>

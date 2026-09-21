@@ -91,7 +91,7 @@ export function ProposalDocument({ data }: { data: ProposalDocumentData }) {
         {(client.email || client.phone) && <p>{[client.email, client.phone].filter(Boolean).join(" · ")}</p>}
       </section>
 
-      <div className="mt-5 overflow-x-auto">
+      <div className="mt-5 overflow-x-auto" role="region" aria-label="Itens da proposta" tabIndex={0}>
         <table className="w-full text-left text-sm">
           <caption className="sr-only">Itens da proposta</caption>
           <thead>

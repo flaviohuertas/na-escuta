@@ -42,7 +42,8 @@ test.describe("Menu: barra lateral no desktop, barra de abas no celular", () => 
     await expect(menu.getByRole("link", { name: "Comercial", exact: true })).toHaveAttribute("aria-current", "page");
   });
 
-  test.describe("celular", () => {
+  // A etiqueta @celular é o que o projeto opcional do Safari (webkit-iphone, no playwright.config.ts) roda.
+  test.describe("celular", { tag: "@celular" }, () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
     test("titular: quatro abas e 'Mais'; o painel abre, leva às telas e fecha ao navegar", async ({ page }) => {
@@ -120,6 +121,25 @@ test.describe("Menu: barra lateral no desktop, barra de abas no celular", () => 
       const barHeight = (await bottomBar(page).boundingBox())!.height;
       const mainPadding = await page.getByRole("main").evaluate((el) => parseFloat(getComputedStyle(el).paddingBottom));
       expect(mainPadding).toBeGreaterThanOrEqual(barHeight);
+    });
+
+    test("a barra de sincronização cabe numa linha e o botão segue com o mesmo nome (só o ícone aparece)", async ({ page }) => {
+      await login(page);
+      const bar = page.getByRole("status").first();
+      const button = bar.getByRole("button", { name: "Sincronizar agora" });
+      await expect(button).toBeVisible();
+      await expect(button).toHaveText("Sincronizar agora"); // o texto existe para o leitor de tela…
+      const box = (await button.boundingBox())!;
+      expect(Math.round(box.width)).toBe(44); // …mas, na tela, é um quadrado de toque de 44 px
+      expect(Math.round(box.height)).toBe(44);
+      // Uma linha: 44 do botão + 16 de respiro. Com duas linhas passaria de 80. Medido calmo e também
+      // durante uma sincronização, quando "Sincronizando…" aparece (no Safari ele quebrava a linha).
+      await expect.poll(async () => (await bar.boundingBox())!.height).toBeLessThanOrEqual(62);
+      await button.click();
+      for (let i = 0; i < 8; i++) {
+        expect((await bar.boundingBox())!.height, `medida ${i + 1} logo após sincronizar`).toBeLessThanOrEqual(62);
+        await page.waitForTimeout(150);
+      }
     });
 
     test("cada aba (e o 'Mais') tem pelo menos 44 px de altura", async ({ page }) => {

@@ -53,6 +53,25 @@ branco e sobre o papel). Os selos de situação seguem os pares que o sistema j�
 5. **Sem emoji e sem ícone baixado:** ícones são SVG embutidos (`Icon`), para existirem também offline.
 6. O que a pessoa **não pode** usar não aparece no menu (a guarda de verdade continua no servidor).
 
+## Como isso é verificado
+
+| O quê | Como | Onde |
+|---|---|---|
+| Contraste dos pares de cor da paleta | Razão WCAG calculada **por código** a partir dos tokens do `globals.css` (texto 4,5:1, gráficos 3:1). Mexeu numa cor e um par deixou de ler bem: falha. | `tests/unit/design/tokens.test.ts` |
+| Contraste e estrutura no navegador | **axe-core** (WCAG 2.0/2.1 A e AA) em 20 telas, no desktop e no celular, mais login, equipe de campo e o painel "Mais" aberto. Zero violações. | `tests/e2e/accessibility.spec.ts` |
+| Aparência | Capturas de referência do login, do formulário de evento, das barras e do painel "Mais". Tolerância de 20 pixels. | `tests/e2e/visual.spec.ts` |
+| Menu no Safari | O E2E do menu do celular rodando no **WebKit**, com o iPhone 13 emulado (toque, tela pequena, `<dialog>`). | `npx playwright install webkit` e `E2E_WEBKIT=1 npx playwright test --project=webkit-iphone` |
+
+Notas:
+- As imagens de referência levam o sistema no nome (`-chromium-win32.png`), porque fonte e suavização mudam de
+  um sistema para outro. Em outro sistema, gere as suas com `npx playwright test visual --update-snapshots` e
+  **não** copie as de um para o outro. Mudança de aparência de propósito: rode com `--update-snapshots`, olhe as
+  imagens e faça commit.
+- O axe só trata um link como "dentro de um bloco de texto" quando o texto ao redor é maior que o link; por isso o
+  teste dá nomes **curtos** aos dados que cria (com um nome longo o defeito passava sem ser visto).
+- Nada disso substitui um aparelho de verdade: o WebKit do Playwright é o motor do Safari, mas não é um iPhone
+  (sem áreas seguras, sem teclado do sistema, sem o navegador embutido do app instalado).
+
 ## O que ainda não foi migrado
 
 Só o esqueleto foi refeito (tokens, fontes, menu, login, barra de sincronização). As telas antigas ganharam a

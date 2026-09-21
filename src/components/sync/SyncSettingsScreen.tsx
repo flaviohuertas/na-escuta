@@ -49,6 +49,7 @@ export function SyncSettingsScreen() {
 
       <div>
         <h2 className="text-sm font-medium text-slate-700">Eventos preparados neste dispositivo</h2>
+        {events.length === 0 && <p className="mt-2 text-sm text-slate-500">Nenhum evento preparado ainda.</p>}
         <ul className="mt-2 space-y-1">
           {events.map((e) => (
             <li key={e.key} className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
@@ -63,7 +64,6 @@ export function SyncSettingsScreen() {
                 ` · última sincronização: ${new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(e.lastSyncAt))}`}
             </li>
           ))}
-          {events.length === 0 && <p className="text-sm text-slate-500">Nenhum evento preparado ainda.</p>}
         </ul>
       </div>
 

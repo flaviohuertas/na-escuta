@@ -103,6 +103,7 @@ export function ConflictsScreen() {
         </p>
       )}
 
+      {conflicts.length === 0 && <p className="mt-4 text-sm text-slate-500">Nenhum conflito pendente.</p>}
       <ul className="mt-4 space-y-3">
         {conflicts.map((conflict) => (
           <li key={conflict.id} className="rounded-lg border border-status-conflict/40 bg-red-50 p-4">
@@ -134,9 +135,6 @@ export function ConflictsScreen() {
             </div>
           </li>
         ))}
-        {conflicts.length === 0 && (
-          <p className="text-sm text-slate-500">Nenhum conflito pendente.</p>
-        )}
       </ul>
     </div>
   );
