@@ -33,7 +33,7 @@ export const ProposalItemSchema = z.strictObject({
 export type ProposalItemInput = z.infer<typeof ProposalItemSchema>;
 
 /** Um dia do calendário ("2027-01-10"), que exista de verdade. */
-const DateOnlySchema = z.string().refine(isValidDateOnly, "Data inválida.");
+export const DateOnlySchema = z.string().refine(isValidDateOnly, "Data inválida.");
 
 const ProposalFieldsSchema = z.strictObject({
   items: z.array(ProposalItemSchema).min(1, "Inclua ao menos um item.").max(MAX_ITEMS, `No máximo ${MAX_ITEMS} itens.`),

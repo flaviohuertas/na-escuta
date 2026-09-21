@@ -7,6 +7,8 @@ import { ProposalVersionList } from "@/components/crm/ProposalParts";
 import { requireSession } from "@/lib/auth/require-session";
 import { formatBRL, formatDateBR } from "@/lib/domain/crm";
 import { formatDateTimeBR } from "@/lib/domain/approval-format";
+import { canManageFinance } from "@/lib/domain/permissions";
+import { getActiveCompanyRole } from "@/server/auth/membership";
 import { AdminActionError } from "@/server/errors";
 import { getBudgetSummary } from "@/server/crm/budget.service";
 import { getOpportunity } from "@/server/crm/opportunity.service";
@@ -24,8 +26,9 @@ export default async function OpportunityPage({ params }: { params: Promise<{ op
   let data: Awaited<ReturnType<typeof getOpportunity>>;
   let proposals: Awaited<ReturnType<typeof listOpportunityProposals>>;
   let budget: Awaited<ReturnType<typeof getBudgetSummary>> | null;
+  let companyRole: string | null;
   try {
-    [data, proposals, budget] = await Promise.all([
+    [data, proposals, budget, companyRole] = await Promise.all([
       getOpportunity({ ...ctx, opportunityId }),
       listOpportunityProposals({ ...ctx, opportunityId }),
       // Quem cuida do comercial mas não vê o orçamento (regra própria) simplesmente não vê a seção.
@@ -33,6 +36,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ op
         if (err instanceof AdminActionError && err.status === 403) return null;
         throw err;
       }),
+      getActiveCompanyRole(ctx.userId, ctx.companyId),
     ]);
   } catch (err) {
     return crmErrorView(err);
@@ -40,6 +44,8 @@ export default async function OpportunityPage({ params }: { params: Promise<{ op
   const { opportunity, client, owner, event, history } = data;
   const canConvert = !opportunity.eventId && opportunity.stage !== "LOST";
   const canCreateProposal = proposals.createBlockedReason === null && proposals.draftId === null;
+  // O financeiro do evento é só de titular e administração: quem não vê nem o link recebe.
+  const canSeeFinance = companyRole !== null && canManageFinance(companyRole);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -102,6 +108,15 @@ export default async function OpportunityPage({ params }: { params: Promise<{ op
             {event.name}
           </AppLink>
           .
+          {canSeeFinance && (
+            <>
+              {" "}
+              <AppLink href={`/financeiro/eventos/${event.id}`} className="font-medium underline">
+                Ver o financeiro do evento
+              </AppLink>
+              .
+            </>
+          )}
         </p>
       )}
 

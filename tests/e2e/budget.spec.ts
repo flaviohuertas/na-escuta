@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { login } from "./helpers/auth";
-import { confirmAction, createClientViaUi, createDraftViaUi, createOpportunityViaUi } from "./helpers/crm";
+import { confirmAction, createClientViaUi, createDraftViaUi, createOpportunityViaUi, createPersonViaUi } from "./helpers/crm";
 
 const FIELD_STAFF_EMAIL = "equipe@naescuta.com.br"; // criado pelo seed: equipe de campo, fora do comercial
 
@@ -163,29 +163,10 @@ test.describe("Orçamento interno: custo por categoria e margem contra a receita
     const name = `Produtora E2E ${stamp}`;
     const email = `produtora.e2e.${stamp}@naescuta.com.br`;
 
-    // ---- Titular: cadastra uma pessoa com o papel de PRODUÇÃO ----
+    // ---- Titular: cadastra uma pessoa com o papel de PRODUÇÃO; ela entra, cria a própria senha e trabalha no comercial ----
     const owner = await (await browser.newContext()).newPage();
     await login(owner);
-    await owner.goto("/administracao/equipe");
-    await owner.getByLabel("Nome", { exact: true }).fill(name);
-    await owner.getByLabel("E-mail").fill(email);
-    await owner.getByLabel("Papel na empresa").selectOption("PRODUCER");
-    await owner.getByRole("button", { name: "Adicionar" }).click();
-    const tempPassword = (await owner.getByTestId("temp-password").innerText()).trim();
-
-    // ---- A produtora entra, cria a própria senha e trabalha no comercial normalmente ----
-    const producer = await (await browser.newContext()).newPage();
-    await producer.goto("/login");
-    await producer.getByLabel("E-mail").fill(email);
-    await producer.getByLabel("Senha").fill(tempPassword);
-    await producer.getByRole("button", { name: "Entrar" }).click();
-    await producer.waitForURL(/\/trocar-senha$/);
-    const ownPassword = `Propria-senha-${stamp}`;
-    await producer.getByLabel("Senha provisória").fill(tempPassword);
-    await producer.getByLabel("Nova senha", { exact: true }).fill(ownPassword);
-    await producer.getByLabel("Repita a nova senha").fill(ownPassword);
-    await producer.getByRole("button", { name: "Salvar nova senha" }).click();
-    await producer.waitForURL(/\/eventos$/);
+    const producer = await createPersonViaUi(browser, owner, { name, email, role: "PRODUCER" });
 
     await expect(producer.getByRole("navigation").getByRole("link", { name: "Comercial", exact: true })).toBeVisible();
     const clientUrl = await createClientViaUi(producer, `Cliente da Produtora ${stamp}`);

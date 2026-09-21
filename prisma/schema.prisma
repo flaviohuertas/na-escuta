@@ -76,6 +76,7 @@ model Company {
   opportunities Opportunity[]
   proposals     Proposal[]
   budgets       Budget[]
+  expenses      EventExpense[]
 
   @@map("companies")
 }
@@ -162,6 +163,7 @@ model Event {
   approvals   PendingApproval[]
   // A oportunidade comercial de onde este evento nasceu (se nasceu de uma).
   opportunity Opportunity?
+  expenses    EventExpense[]
 
   @@index([companyId, updatedAt])
   @@map("events")
@@ -602,6 +604,40 @@ model BudgetItem {
 
   @@unique([budgetId, position])
   @@map("budget_items")
+}
+
+// Financeiro: um lançamento de custo REALIZADO de um evento (o que se gastou de verdade, para
+// comparar com o orçamento previsto). Módulo de gestão, ao vivo no servidor: NÃO passa pelo sync e
+// nunca vai para o aparelho de campo. Registro financeiro nunca é apagado nem reescrito em silêncio:
+// se estava errado, edita-se (com versão e auditoria) ou ESTORNA-se (`voidedAt`, com o motivo) — o
+// estornado continua na lista, riscado, e sai dos totais. Dinheiro em CENTAVOS; `expenseDate` é um
+// dia do calendário (sem fuso). `category` são os mesmos códigos do orçamento (`BUDGET_CATEGORIES`).
+model EventExpense {
+  id          String    @id @default(uuid())
+  companyId   String
+  eventId     String
+  category    String
+  description String
+  supplier    String?
+  amountCents Int
+  expenseDate DateTime  @db.Date
+  notes       String?
+
+  version    Int       @default(1)
+  createdBy  String?
+  updatedBy  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  voidedAt   DateTime?
+  voidedBy   String?
+  voidReason String?
+
+  company Company @relation(fields: [companyId], references: [id])
+  event   Event   @relation(fields: [eventId], references: [id])
+
+  @@index([eventId, voidedAt])
+  @@index([companyId])
+  @@map("event_expenses")
 }
 
 enum PendingApprovalStatus {

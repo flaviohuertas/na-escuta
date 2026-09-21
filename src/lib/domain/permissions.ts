@@ -46,6 +46,18 @@ export function canManageBudget(companyRole: string): boolean {
   return COMPANY_ROLES_THAT_MANAGE_BUDGET.has(companyRole);
 }
 
+/**
+ * Papéis que veem e lançam o FINANCEIRO do evento (custo realizado, margem realizada): só o titular
+ * e a administração, como no orçamento — dinheiro de verdade da produtora. Regra própria (não
+ * reaproveita a do orçamento) para poder divergir: o financeiro podia, um dia, ganhar um papel
+ * de "financeiro" sem abrir o orçamento comercial, ou o contrário. Falha fechada.
+ */
+const COMPANY_ROLES_THAT_MANAGE_FINANCE: ReadonlySet<string> = new Set(["OWNER", "ADMIN"]);
+
+export function canManageFinance(companyRole: string): boolean {
+  return COMPANY_ROLES_THAT_MANAGE_FINANCE.has(companyRole);
+}
+
 /** Editar os dados do evento e convidar/remover pessoas dele: só o gestor do evento. */
 export function canManageEvent(eventRole: string): boolean {
   return eventRole === "MANAGER";

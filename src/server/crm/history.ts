@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db/prisma";
 import type { AuditLog } from "@/generated/prisma/client";
 import { describeBudgetHistory } from "@/lib/domain/budget";
 import { describeOpportunityHistory } from "@/lib/domain/crm";
+import { describeExpenseHistory } from "@/lib/domain/finance";
 import { describeProposalHistory } from "@/lib/domain/proposal";
 
 export interface HistoryEntry {
@@ -11,8 +12,9 @@ export interface HistoryEntry {
   text: string;
 }
 
-/** A linha do histórico em palavras: proposta, orçamento e oportunidade têm redações próprias. */
+/** A linha do histórico em palavras: proposta, orçamento, lançamento financeiro e oportunidade têm redações próprias. */
 export function describeAudit(entry: Pick<AuditLog, "action" | "beforeJson" | "afterJson" | "metadata">): string {
+  if (entry.action.startsWith("EXPENSE_")) return describeExpenseHistory(entry.action, entry.beforeJson, entry.afterJson, entry.metadata);
   if (entry.action.startsWith("PROPOSAL_")) return describeProposalHistory(entry.action, entry.beforeJson, entry.afterJson, entry.metadata);
   if (entry.action.startsWith("BUDGET_")) return describeBudgetHistory(entry.action, entry.beforeJson, entry.afterJson);
   return describeOpportunityHistory(entry.action, entry.beforeJson, entry.afterJson, entry.metadata);
