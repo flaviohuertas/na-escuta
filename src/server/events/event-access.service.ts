@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 import { AccessStatus, EventRole } from "@/generated/prisma/enums";
 import { AdminActionError } from "@/server/errors";
 import { requireEventManager } from "./event.service";
@@ -28,8 +29,12 @@ const MANAGE_PEOPLE = "gerenciar as pessoas dele";
 
 const byName = <T extends { name: string }>(a: T, b: T) => a.name.localeCompare(b.name, "pt-BR");
 
-async function requireActiveMember(companyId: string, userId: string): Promise<void> {
-  const membership = await prisma.membership.findUnique({
+/**
+ * Dentro de uma transação passe o `tx`: consultar pelo cliente global ali pede uma SEGUNDA conexão
+ * enquanto a transação segura a primeira — com o pool cheio, todos esperam por todos.
+ */
+async function requireActiveMember(companyId: string, userId: string, db: Prisma.TransactionClient | typeof prisma = prisma): Promise<void> {
+  const membership = await db.membership.findUnique({
     where: { userId_companyId: { userId, companyId } },
     include: { user: { select: { isActive: true } } },
   });
@@ -158,7 +163,7 @@ export async function changeEventAccess(params: {
     }
     if (!wasActive && willBeActive) {
       // Reativar é conceder de novo: a pessoa precisa ainda ser da empresa.
-      await requireActiveMember(companyId, params.userId);
+      await requireActiveMember(companyId, params.userId, tx);
     }
 
     const losesManagement = wasActive && access.role === EventRole.MANAGER && (!willBeActive || nextRole !== EventRole.MANAGER);
