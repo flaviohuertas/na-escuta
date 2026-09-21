@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { z } from "zod";
 import { AppLink } from "@/components/ui/AppLink";
+import { Button, buttonClass } from "@/components/ui/Button";
+import { Field, RequiredNote, inputClass } from "@/components/ui/Field";
+import { useFocusFirstInvalid } from "@/components/ui/use-focus-first-invalid";
 import { callApi } from "@/components/admin/api";
 import { ChangePasswordSchema } from "@/lib/domain/password.schema";
 import { navigateToDocument } from "@/lib/offline/navigate";
-
-const inputClass =
-  "mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200";
 
 /**
  * Trocar a própria senha. Com `forced`, é a senha PROVISÓRIA que a administração entregou: a
@@ -21,6 +21,9 @@ export function ChangePasswordForm({ forced }: { forced: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
   const [submitting, setSubmitting] = useState(false);
+
+  const formRef = useRef<HTMLFormElement>(null);
+  useFocusFirstInvalid(formRef, fieldErrors);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -52,7 +55,9 @@ export function ChangePasswordForm({ forced }: { forced: boolean }) {
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="mt-4 space-y-4" aria-label="Trocar senha">
+    <form ref={formRef} onSubmit={onSubmit} noValidate className="mt-4 space-y-4" aria-label="Trocar senha">
+      <RequiredNote />
+
       {forced ? (
         <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
           Você entrou com uma senha provisória. Por segurança, crie a sua própria senha antes de continuar.
@@ -67,7 +72,7 @@ export function ChangePasswordForm({ forced }: { forced: boolean }) {
         </p>
       )}
 
-      <Field id="current-password" label={forced ? "Senha provisória" : "Senha atual"} error={fieldErrors.currentPassword}>
+      <Field id="current-password" label={forced ? "Senha provisória" : "Senha atual"} error={fieldErrors.currentPassword} required>
         <input
           id="current-password"
           type="password"
@@ -77,7 +82,7 @@ export function ChangePasswordForm({ forced }: { forced: boolean }) {
           className={inputClass}
         />
       </Field>
-      <Field id="new-password" label="Nova senha" error={fieldErrors.newPassword} hint="Pelo menos 10 caracteres.">
+      <Field id="new-password" label="Nova senha" error={fieldErrors.newPassword} hint="Pelo menos 10 caracteres." required>
         <input
           id="new-password"
           type="password"
@@ -87,7 +92,7 @@ export function ChangePasswordForm({ forced }: { forced: boolean }) {
           className={inputClass}
         />
       </Field>
-      <Field id="confirm-password" label="Repita a nova senha" error={fieldErrors.confirmPassword}>
+      <Field id="confirm-password" label="Repita a nova senha" error={fieldErrors.confirmPassword} required>
         <input
           id="confirm-password"
           type="password"
@@ -99,48 +104,15 @@ export function ChangePasswordForm({ forced }: { forced: boolean }) {
       </Field>
 
       <div className="flex items-center gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:opacity-60"
-        >
+        <Button type="submit" disabled={submitting}>
           {submitting ? "Salvando…" : "Salvar nova senha"}
-        </button>
+        </Button>
         {!forced && (
-          <AppLink href="/eventos" className="text-sm text-slate-600 hover:text-slate-900">
+          <AppLink href="/eventos" className={buttonClass({ variant: "ghost" })}>
             Cancelar
           </AppLink>
         )}
       </div>
     </form>
-  );
-}
-
-function Field({
-  id,
-  label,
-  error,
-  hint,
-  children,
-}: {
-  id: string;
-  label: string;
-  error?: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700">
-        {label}
-      </label>
-      {children}
-      {hint && !error && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
-      {error && (
-        <p role="alert" className="mt-1 text-sm text-red-700">
-          {error}
-        </p>
-      )}
-    </div>
   );
 }

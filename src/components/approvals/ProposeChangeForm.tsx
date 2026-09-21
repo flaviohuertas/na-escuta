@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { callApi } from "@/components/admin/api";
 import { AppLink } from "@/components/ui/AppLink";
+import { Button, buttonClass } from "@/components/ui/Button";
+import { Field, inputClass } from "@/components/ui/Field";
+import { useFocusFirstInvalid } from "@/components/ui/use-focus-first-invalid";
 import { isoToLocalInput, localInputToIso } from "@/lib/domain/datetime-local";
 import { EVENT_STATUS_LABEL } from "@/lib/domain/event-labels";
 import { EventStatusValues, type EventStatus } from "@/lib/domain/event.schema";
@@ -18,9 +21,6 @@ export interface ProposeFormInitial {
   endDate: string;
   status: EventStatus;
 }
-
-const inputClass =
-  "mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200";
 
 /**
  * A equipe de campo propõe uma correção nos dados do evento. Nada muda no evento agora: o gestor
@@ -39,6 +39,9 @@ export function ProposeChangeForm({ initial }: { initial: ProposeFormInitial }) 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
+
+  const formRef = useRef<HTMLFormElement>(null);
+  useFocusFirstInvalid(formRef, fieldErrors);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -93,7 +96,7 @@ export function ProposeChangeForm({ initial }: { initial: ProposeFormInitial }) 
   const fieldError = (field: string) => fieldErrors[field];
 
   return (
-    <form onSubmit={onSubmit} noValidate className="mt-6 space-y-4" aria-label="Proposta de alteração do evento">
+    <form ref={formRef} onSubmit={onSubmit} noValidate className="mt-6 space-y-4" aria-label="Proposta de alteração do evento">
       {error && (
         <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
@@ -136,33 +139,13 @@ export function ProposeChangeForm({ initial }: { initial: ProposeFormInitial }) 
       </Field>
 
       <div className="flex items-center gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:opacity-60"
-        >
+        <Button type="submit" disabled={submitting}>
           {submitting ? "Enviando…" : "Enviar proposta"}
-        </button>
-        <AppLink href="/eventos" className="text-sm text-slate-600 hover:text-slate-900">
+        </Button>
+        <AppLink href="/eventos" className={buttonClass({ variant: "ghost" })}>
           Cancelar
         </AppLink>
       </div>
     </form>
-  );
-}
-
-function Field({ id, label, error, children }: { id: string; label: string; error?: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700">
-        {label}
-      </label>
-      {children}
-      {error && (
-        <p id={`${id}-error`} role="alert" className="mt-1 text-sm text-red-700">
-          {error}
-        </p>
-      )}
-    </div>
   );
 }

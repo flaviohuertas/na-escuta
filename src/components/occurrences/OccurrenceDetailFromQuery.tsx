@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { AppLink } from "@/components/ui/AppLink";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { OccurrenceDetailScreen } from "./OccurrenceDetailScreen";
 
 /**
@@ -22,10 +22,11 @@ export function OccurrenceDetailFromQuery({
   if (!occurrenceId) {
     return (
       <div className="mx-auto max-w-2xl">
-        <AppLink href={`/eventos/${eventId}/ocorrencias`} className="text-sm text-brand-600 hover:underline">
-          ← Voltar às ocorrências
-        </AppLink>
-        <p className="mt-3 text-slate-600">Nenhuma ocorrência foi indicada.</p>
+        <PageHeader
+          title="Ocorrência"
+          description="Nenhuma ocorrência foi indicada."
+          back={{ href: `/eventos/${eventId}/ocorrencias`, label: "Voltar às ocorrências" }}
+        />
       </div>
     );
   }

@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { callApi } from "@/components/admin/api";
 import { AppLink } from "@/components/ui/AppLink";
-import { Field, inputClass, issuesByField } from "@/components/crm/Field";
+import { Field, RequiredNote, inputClass, issuesByField } from "@/components/crm/Field";
+import { buttonClass } from "@/components/ui/Button";
+import { useFocusFirstInvalid } from "@/components/ui/use-focus-first-invalid";
 import { centsToInput, parseBRLToCents } from "@/lib/domain/crm";
 import { OpportunityInputSchema, OpportunityUpdateSchema } from "@/lib/domain/crm.schema";
 import { isoToLocalInput, localInputToIso } from "@/lib/domain/datetime-local";
@@ -58,6 +60,8 @@ export function OpportunityForm({
   const [error, setError] = useState<string | null>(null);
   const [outdated, setOutdated] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
+  const formRef = useRef<HTMLFormElement>(null);
+  useFocusFirstInvalid(formRef, fieldErrors);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -103,7 +107,8 @@ export function OpportunityForm({
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="mt-6 space-y-4" aria-label="Dados da oportunidade">
+    <form ref={formRef} onSubmit={onSubmit} noValidate className="mt-6 space-y-4" aria-label="Dados da oportunidade">
+      <RequiredNote />
       {error && (
         <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
           <p>{error}</p>
@@ -119,7 +124,7 @@ export function OpportunityForm({
         </div>
       )}
 
-      <Field id="opp-client" label="Cliente" error={fieldErrors.clientId} hint={mode === "edit" ? "O cliente não muda depois de aberta a oportunidade." : undefined}>
+      <Field id="opp-client" label="Cliente" error={fieldErrors.clientId} required hint={mode === "edit" ? "O cliente não muda depois de aberta a oportunidade." : undefined}>
         <select id="opp-client" value={clientId} onChange={(e) => setClientId(e.target.value)} disabled={mode === "edit"} className={inputClass}>
           <option value="">Escolha o cliente…</option>
           {clients.map((client) => (
@@ -130,7 +135,7 @@ export function OpportunityForm({
         </select>
       </Field>
 
-      <Field id="opp-title" label="Título" error={fieldErrors.title}>
+      <Field id="opp-title" label="Título" error={fieldErrors.title} required>
         <input id="opp-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} className={inputClass} />
       </Field>
 
@@ -166,11 +171,11 @@ export function OpportunityForm({
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:opacity-60"
+          className={buttonClass()}
         >
           {submitting ? "Salvando…" : mode === "edit" ? "Salvar alterações" : "Abrir oportunidade"}
         </button>
-        <AppLink href={mode === "edit" && initial ? `/comercial/oportunidades/${initial.id}` : "/comercial"} className="text-sm text-slate-600 hover:text-slate-900">
+        <AppLink href={mode === "edit" && initial ? `/comercial/oportunidades/${initial.id}` : "/comercial"} className={buttonClass({ variant: "ghost" })}>
           Cancelar
         </AppLink>
       </div>

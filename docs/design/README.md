@@ -13,8 +13,12 @@ que enfraquecem); as cores são papel quente, tinta e um laranja de sinalizaçã
 | Cores, fontes, foco visível, títulos | [`src/app/globals.css`](../../src/app/globals.css) (`@theme`) |
 | Fontes (auto-hospedadas, funcionam offline) | [`src/app/layout.tsx`](../../src/app/layout.tsx) (`next/font`) |
 | Marca (`LogoMark`, `Wordmark`) | [`src/components/ui/Logo.tsx`](../../src/components/ui/Logo.tsx) |
-| Botão (`Button`, `buttonClass`) | [`src/components/ui/Button.tsx`](../../src/components/ui/Button.tsx) |
+| Botão (`Button`, `buttonClass`; variantes `primary`, `secondary`, `ghost`, `danger`, `ghost-danger`) | [`src/components/ui/Button.tsx`](../../src/components/ui/Button.tsx) |
 | Selo de situação (`Badge`) | [`src/components/ui/Badge.tsx`](../../src/components/ui/Badge.tsx) |
+| Campo de formulário (`Field`, `inputClass`, `compactSelectClass`, `RequiredNote`) | [`src/components/ui/Field.tsx`](../../src/components/ui/Field.tsx) |
+| Foco no primeiro campo com erro depois de um envio recusado | [`src/components/ui/use-focus-first-invalid.ts`](../../src/components/ui/use-focus-first-invalid.ts) |
+| Topo de tela (`PageHeader`, `BackLink`) | [`src/components/ui/PageHeader.tsx`](../../src/components/ui/PageHeader.tsx) |
+| Cartão (`Card`, `cardClass`), lista vazia e carregando (`EmptyState`, `LoadingLine`), barra de andamento (`ProgressBar`) | [`Card.tsx`](../../src/components/ui/Card.tsx), [`EmptyState.tsx`](../../src/components/ui/EmptyState.tsx), [`ProgressBar.tsx`](../../src/components/ui/ProgressBar.tsx) |
 | Ícones | [`src/components/ui/Icon.tsx`](../../src/components/ui/Icon.tsx) |
 | Menu (o que cada papel vê) | [`src/components/layout/nav-model.ts`](../../src/components/layout/nav-model.ts) |
 | Menu (a apresentação) | [`src/components/layout/AppNav.tsx`](../../src/components/layout/AppNav.tsx) |
@@ -52,13 +56,24 @@ branco e sobre o papel). Os selos de situação seguem os pares que o sistema j�
 4. **Só `className` de layout** em `Button`/`buttonClass` (`w-full`, `ml-auto`); cor e tamanho vêm da variante.
 5. **Sem emoji e sem ícone baixado:** ícones são SVG embutidos (`Icon`), para existirem também offline.
 6. O que a pessoa **não pode** usar não aparece no menu (a guarda de verdade continua no servidor).
+7. **Campo:** borda `slate-400` (3:1 sobre o papel e o branco — WCAG 1.4.11; `slate-300` dava 1,5:1), texto de 16 px (abaixo disso o
+   Safari do iPhone dá zoom na tela ao focar) e o contorno de foco global (`globals.css`), o mesmo de botões e links. Use
+   `inputClass`/`compactSelectClass`; um teste barra campo escrito à mão com a borda clara.
+8. **Formulário:** todo campo vai dentro de `Field`, que liga o erro e a dica ao campo (`aria-describedby`), marca `aria-invalid` e
+   `aria-required`. Campo obrigatório leva `required` no `Field` (asterisco fora do `<label>`, explicado por `RequiredNote`);
+   opcional segue "(opcional)" no rótulo. Depois de um envio recusado, `useFocusFirstInvalid` leva o foco ao primeiro erro.
+9. **Ação que apaga pede confirmação** no próprio lugar (foco na opção segura, "Cancelar" devolve o foco ao botão). O botão diz
+   o que faz ("Iniciar", "Concluir", "Reabrir"), com o nome da tarefa no nome acessível.
+10. **Lista que lê do aparelho** distingue "carregando" (`LoadingLine`) de "vazia" (`EmptyState`, fora do `<ul>`): consultar o
+    IndexedDB começa em `undefined`, não em `[]`.
 
 ## Como isso é verificado
 
 | O quê | Como | Onde |
 |---|---|---|
-| Contraste dos pares de cor da paleta | Razão WCAG calculada **por código** a partir dos tokens do `globals.css` (texto 4,5:1, gráficos 3:1). Mexeu numa cor e um par deixou de ler bem: falha. | `tests/unit/design/tokens.test.ts` |
-| Contraste e estrutura no navegador | **axe-core** (WCAG 2.0/2.1 A e AA) em 20 telas, no desktop e no celular, mais login, equipe de campo e o painel "Mais" aberto. Zero violações. | `tests/e2e/accessibility.spec.ts` |
+| Contraste dos pares de cor da paleta e das **bordas dos campos** | Razão WCAG calculada **por código** a partir dos tokens do `globals.css` e das classes de `Field.tsx` (texto 4,5:1, gráficos, bordas e foco 3:1). Mexeu numa cor, ou escreveu um campo à mão com a borda clara: falha. | `tests/unit/design/tokens.test.ts` |
+| Campo, erro, foco e telas de campo | `Field` (descrição, `aria-invalid`, `aria-required`), `useFocusFirstInvalid`, a tela de tarefas (confirmar antes de excluir, carregando × vazio) e o checklist (alvo, "Obrigatório"). | `tests/unit/components/field.test.tsx`, `tasks-screen.test.tsx`, `checklist-detail.test.tsx` |
+| Contraste, estrutura e **tamanho de alvo** no navegador | **axe-core** (WCAG 2.0, 2.1 e **2.2** A e AA — a 2.2 traz `target-size`, 24 px) em 20 telas, no desktop e no celular, mais login, equipe de campo, o painel "Mais" aberto e as **telas de campo com dados** (evento, tarefas, checklists e ocorrências, listas e detalhes). Zero violações. | `tests/e2e/accessibility.spec.ts` |
 | Aparência | Capturas de referência do login, do formulário de evento, das barras e do painel "Mais". Tolerância de 20 pixels. | `tests/e2e/visual.spec.ts` |
 | Menu no Safari | O E2E do menu do celular rodando no **WebKit**, com o iPhone 13 emulado (toque, tela pequena, `<dialog>`). | `npx playwright install webkit` e `E2E_WEBKIT=1 npx playwright test --project=webkit-iphone` |
 
@@ -74,9 +89,17 @@ Notas:
 
 ## O que ainda não foi migrado
 
-Só o esqueleto foi refeito (tokens, fontes, menu, login, barra de sincronização). As telas antigas ganharam a
-paleta e as fontes de graça, mas ainda montam botões, cartões e campos à mão. Próximas fatias:
-**telas do campo** (evento, tarefas, checklists, ocorrências), **gestão no desktop** (larguras de conteúdo
-consistentes, tabelas), **proposta impressa** (logo e cabeçalho) e os componentes que faltam (`Card`, `Field`,
-`PageHeader`), que entram junto com as telas que os usam — não antes. **Modo escuro** (direção "Bastidor")
-ficou de fora; os tokens estão em variáveis, então cabe depois sem refazer telas.
+Feitos: o esqueleto (tokens, fontes, menu, login, barra de sincronização), as **telas de campo** (evento, tarefas,
+checklists, ocorrências) e os **campos de todos os formulários** (borda, tamanho, foco, erro ligado ao campo).
+
+Ainda à mão, de propósito deixados para as próximas fatias:
+- **Gestão no desktop:** as telas de Comercial, Fornecedores, Financeiro e Aprovações ainda montam botões, selos e o link de
+  voltar (`text-sm text-slate-600`, uns 20 px de altura) sem `Button`, `Badge` e `PageHeader`; os selos de saúde do painel,
+  de comparação do financeiro e de prazo têm cores próprias, em vez do `Badge`. Larguras de conteúdo e tabelas seguem por ali.
+- **Formulários de orçamento e proposta:** as linhas de item usam `aria-label` e não marcam `aria-invalid` por linha, então o
+  foco no primeiro erro só vale para os campos soltos deles.
+- **Um resumo de erros** no topo dos formulários compridos (hoje o foco vai ao primeiro campo com erro, sem lista).
+- **Lista de eventos no celular** (cartão e até três ações lado a lado), a **barra de sincronização** (a barra inteira é uma
+  região `aria-live`) e a **aba "Sincronização"** em telas de 320–360 px: apontados na avaliação, ainda não medidos no aparelho.
+- **Proposta impressa** (logo e cabeçalho) e o **login**, que mostra o usuário e a senha de demonstração a qualquer visitante.
+- **Modo escuro** (direção "Bastidor") ficou de fora; os tokens estão em variáveis, então cabe depois sem refazer telas.

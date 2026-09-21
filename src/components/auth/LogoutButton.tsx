@@ -2,6 +2,8 @@
 
 import { useId, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
+import { buttonClass } from "@/components/ui/Button";
+import { inputClass } from "@/components/ui/Field";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getDb, wipeLocalDatabase } from "@/lib/db/dexie/db";
 import { exportPendingChangesEncrypted } from "@/lib/sync/export-pending";
@@ -111,7 +113,11 @@ export function LogoutButton({ className }: { className?: string } = {}) {
             </p>
           )}
 
-          {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+          {error && (
+            <p role="alert" className="mt-2 text-sm text-red-700">
+              {error}
+            </p>
+          )}
           {exportedFileName && (
             <p className="mt-2 text-sm text-status-synced">Exportado: {exportedFileName}</p>
           )}
@@ -126,14 +132,14 @@ export function LogoutButton({ className }: { className?: string } = {}) {
                 type="password"
                 value={passphrase}
                 onChange={(e) => setPassphrase(e.target.value)}
-                className="w-full rounded-md border border-slate-300 px-3 py-2"
+                className={inputClass}
                 autoFocus
               />
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setStep("confirm")}
-                  className="rounded-md px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100"
+                  className={buttonClass({ variant: "ghost" })}
                 >
                   Voltar
                 </button>
@@ -141,7 +147,7 @@ export function LogoutButton({ className }: { className?: string } = {}) {
                   type="button"
                   onClick={() => void handleExport()}
                   disabled={step === "exporting"}
-                  className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+                  className={buttonClass()}
                 >
                   {step === "exporting" ? "Exportando…" : "Exportar arquivo cifrado"}
                 </button>
@@ -152,7 +158,7 @@ export function LogoutButton({ className }: { className?: string } = {}) {
               <button
                 type="button"
                 onClick={closeDialog}
-                className="rounded-md px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100"
+                className={buttonClass({ variant: "ghost" })}
               >
                 Cancelar
               </button>
@@ -160,7 +166,7 @@ export function LogoutButton({ className }: { className?: string } = {}) {
                 <button
                   type="button"
                   onClick={() => setStep("export")}
-                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                  className={buttonClass({ variant: "secondary" })}
                 >
                   Exportar pendências
                 </button>
@@ -168,14 +174,14 @@ export function LogoutButton({ className }: { className?: string } = {}) {
               <button
                 type="button"
                 onClick={() => void handleSignOut(false)}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                className={buttonClass({ variant: "secondary" })}
               >
                 Sair sem limpar dados
               </button>
               <button
                 type="button"
                 onClick={() => void handleSignOut(true)}
-                className="rounded-md bg-status-error px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+                className={buttonClass({ variant: "danger" })}
               >
                 Sair e limpar dispositivo
               </button>

@@ -1,4 +1,5 @@
 import { AppLink } from "@/components/ui/AppLink";
+import { inputClass } from "@/components/ui/Field";
 import { crmErrorView } from "@/components/crm/CrmParts";
 import { requireSession } from "@/lib/auth/require-session";
 import { formatDocument } from "@/lib/domain/crm";
@@ -42,7 +43,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
             id="q"
             name="q"
             defaultValue={q ?? ""}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+            className={inputClass}
           />
         </div>
         <label className="flex items-center gap-2 pb-2 text-sm text-slate-700">

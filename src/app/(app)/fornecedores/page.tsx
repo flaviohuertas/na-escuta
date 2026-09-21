@@ -1,4 +1,5 @@
 import { AppLink } from "@/components/ui/AppLink";
+import { inputClass } from "@/components/ui/Field";
 import { supplierErrorView } from "@/components/suppliers/SupplierParts";
 import { requireSession } from "@/lib/auth/require-session";
 import { BUDGET_CATEGORIES } from "@/lib/domain/budget";
@@ -42,7 +43,7 @@ export default async function SuppliersPage({ searchParams }: { searchParams: Pr
             id="q"
             name="q"
             defaultValue={q ?? ""}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+            className={inputClass}
           />
         </div>
         <div>
@@ -53,7 +54,7 @@ export default async function SuppliersPage({ searchParams }: { searchParams: Pr
             id="categoria"
             name="categoria"
             defaultValue={category ?? ""}
-            className="mt-1 rounded-md border border-slate-300 px-3 py-2 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+            className={inputClass}
           >
             <option value="">Todas</option>
             {BUDGET_CATEGORIES.map((c) => (

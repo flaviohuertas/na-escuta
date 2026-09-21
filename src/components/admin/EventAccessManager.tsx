@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { compactSelectClass } from "@/components/ui/Field";
 import { COMPANY_ROLE_LABEL, EVENT_ROLE_LABEL } from "@/lib/domain/event-labels";
 import { EVENT_ROLES, type EventRoleName } from "@/lib/domain/permissions";
 import { callApi } from "./api";
@@ -22,8 +23,7 @@ export interface AccessCandidate {
   companyRole: string;
 }
 
-const selectClass =
-  "rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200";
+const selectClass = compactSelectClass;
 
 /**
  * Quem tem acesso a este evento, e a que papel. Cada ação é uma ida ao servidor (que revalida

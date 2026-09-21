@@ -65,11 +65,15 @@ body {
   color: var(--color-ink);
 }
 
-/* Foco visível para teclado em tudo que é clicável (campos já têm o anel deles). */
+/* Foco visível em tudo que é clicável ou digitável: o mesmo contorno de 2 px em todos os lugares
+   (brand-600 passa de 4,5:1 sobre o papel e sobre o branco). Não some com `outline-none` nas classes. */
 @layer base {
   a:focus-visible,
   button:focus-visible,
   summary:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
   [tabindex="0"]:focus-visible {
     outline: 2px solid var(--color-brand-600);
     outline-offset: 2px;

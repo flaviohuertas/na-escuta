@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { Button } from "@/components/ui/Button";
+import { inputClass } from "@/components/ui/Field";
 import { LogoMark, Wordmark } from "@/components/ui/Logo";
 import { auth, signIn } from "@/lib/auth/auth.config";
 
@@ -61,7 +62,7 @@ export default async function LoginPage({
               type="email"
               autoComplete="email"
               required
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+              className={inputClass}
             />
           </div>
           <div>
@@ -74,7 +75,7 @@ export default async function LoginPage({
               type="password"
               autoComplete="current-password"
               required
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+              className={inputClass}
             />
           </div>
           <Button type="submit" className="w-full">

@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { callApi } from "@/components/admin/api";
-import { Field, inputClass, issuesByField } from "@/components/crm/Field";
+import { Field, RequiredNote, inputClass, issuesByField } from "@/components/crm/Field";
+import { buttonClass } from "@/components/ui/Button";
+import { useFocusFirstInvalid } from "@/components/ui/use-focus-first-invalid";
 import { AppLink } from "@/components/ui/AppLink";
 import { SupplierSelect, type SupplierChoice } from "@/components/suppliers/SupplierSelect";
 import { BUDGET_CATEGORIES, MAX_ITEM_DESCRIPTION, MAX_SUPPLIER } from "@/lib/domain/budget";
@@ -60,6 +62,8 @@ export function ExpenseForm({
   const [saved, setSaved] = useState(false);
   const [outdated, setOutdated] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
+  const formRef = useRef<HTMLFormElement>(null);
+  useFocusFirstInvalid(formRef, fieldErrors);
   const back = `/financeiro/eventos/${eventId}`;
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -120,7 +124,8 @@ export function ExpenseForm({
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="mt-3 space-y-4" aria-label={mode === "edit" ? "Editar lançamento" : "Novo lançamento"}>
+    <form ref={formRef} onSubmit={onSubmit} noValidate className="mt-3 space-y-4" aria-label={mode === "edit" ? "Editar lançamento" : "Novo lançamento"}>
+      <RequiredNote />
       {error && (
         <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
           <p>{error}</p>
@@ -157,12 +162,12 @@ export function ExpenseForm({
         </Field>
       </div>
 
-      <Field id="expense-description" label="Descrição" error={fieldErrors.description}>
+      <Field id="expense-description" label="Descrição" error={fieldErrors.description} required>
         <input id="expense-description" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={MAX_ITEM_DESCRIPTION} className={inputClass} />
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field id="expense-amount" label="Valor (R$)" error={fieldErrors.amountCents} hint="Ex.: 3.000,00">
+        <Field id="expense-amount" label="Valor (R$)" error={fieldErrors.amountCents} hint="Ex.: 3.000,00" required>
           <input id="expense-amount" value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" className={inputClass} />
         </Field>
         <Field id="expense-supplier" label="Fornecedor (opcional)" error={fieldErrors.supplier ?? fieldErrors.supplierId}>
@@ -188,12 +193,12 @@ export function ExpenseForm({
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:opacity-60"
+          className={buttonClass()}
         >
           {submitting ? "Salvando…" : mode === "edit" ? "Salvar alterações" : "Lançar custo"}
         </button>
         {mode === "edit" && (
-          <AppLink href={back} className="text-sm text-slate-600 hover:text-slate-900">
+          <AppLink href={back} className={buttonClass({ variant: "ghost" })}>
             Cancelar
           </AppLink>
         )}

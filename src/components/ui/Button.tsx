@@ -1,6 +1,6 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ComponentProps } from "react";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "ghost-danger";
 export type ButtonSize = "sm" | "md";
 
 const BASE =
@@ -11,6 +11,8 @@ const VARIANT: Record<ButtonVariant, string> = {
   secondary: "border-[1.5px] border-ink bg-transparent text-ink hover:bg-slate-100",
   ghost: "text-slate-700 hover:bg-slate-100",
   danger: "bg-status-error text-white hover:opacity-90",
+  // Ação destrutiva de segundo plano (ex.: "Excluir" ao lado de outra ação): vermelho, sem preenchimento.
+  "ghost-danger": "text-status-error hover:bg-red-50",
 };
 
 // `md` tem 44 px de altura, o mínimo recomendado para toque; `sm` é para telas de escritório.
@@ -31,12 +33,13 @@ export function buttonClass({
   return `${BASE} ${VARIANT[variant]} ${SIZE[size]} ${className}`.trim();
 }
 
+/** `ref` chega como propriedade comum (React 19), então serve também para devolver o foco a um botão. */
 export function Button({
   variant,
   size,
   className,
   type = "button",
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize }) {
+}: ComponentProps<"button"> & { variant?: ButtonVariant; size?: ButtonSize }) {
   return <button type={type} className={buttonClass({ variant, size, className })} {...props} />;
 }

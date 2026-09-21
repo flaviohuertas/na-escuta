@@ -1,5 +1,6 @@
 "use client";
 
+import { inputClass } from "@/components/ui/Field";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { callApi } from "@/components/admin/api";
@@ -65,7 +66,7 @@ export function VoidExpenseButton({ expenseId, version, description }: { expense
         onChange={(e) => setReason(e.target.value)}
         maxLength={MAX_VOID_REASON}
         rows={2}
-        className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+        className={inputClass}
       />
       <div className="mt-2 flex items-center gap-2">
         <button type="button" onClick={() => void confirm()} disabled={busy} className="rounded-md bg-red-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-60">

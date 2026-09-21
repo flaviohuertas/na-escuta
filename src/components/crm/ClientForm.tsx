@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { callApi } from "@/components/admin/api";
 import { AppLink } from "@/components/ui/AppLink";
-import { Field, inputClass, issuesByField } from "@/components/crm/Field";
+import { Field, RequiredNote, inputClass, issuesByField } from "@/components/crm/Field";
+import { buttonClass } from "@/components/ui/Button";
+import { useFocusFirstInvalid } from "@/components/ui/use-focus-first-invalid";
 import { formatDocument } from "@/lib/domain/crm";
 import { ClientInputSchema, ClientUpdateSchema } from "@/lib/domain/crm.schema";
 import { navigateToDocument } from "@/lib/offline/navigate";
@@ -36,6 +38,8 @@ export function ClientForm({ mode, initial }: { mode: "create" | "edit"; initial
   const [error, setError] = useState<string | null>(null);
   const [outdated, setOutdated] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
+  const formRef = useRef<HTMLFormElement>(null);
+  useFocusFirstInvalid(formRef, fieldErrors);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -75,7 +79,8 @@ export function ClientForm({ mode, initial }: { mode: "create" | "edit"; initial
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="mt-6 space-y-4" aria-label="Dados do cliente">
+    <form ref={formRef} onSubmit={onSubmit} noValidate className="mt-6 space-y-4" aria-label="Dados do cliente">
+      <RequiredNote />
       {error && (
         <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
           <p>{error}</p>
@@ -91,7 +96,7 @@ export function ClientForm({ mode, initial }: { mode: "create" | "edit"; initial
         </div>
       )}
 
-      <Field id="client-name" label="Nome" error={fieldErrors.name}>
+      <Field id="client-name" label="Nome" error={fieldErrors.name} required>
         <input id="client-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={200} className={inputClass} />
       </Field>
 
@@ -124,11 +129,11 @@ export function ClientForm({ mode, initial }: { mode: "create" | "edit"; initial
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:opacity-60"
+          className={buttonClass()}
         >
           {submitting ? "Salvando…" : mode === "edit" ? "Salvar alterações" : "Cadastrar cliente"}
         </button>
-        <AppLink href="/comercial/clientes" className="text-sm text-slate-600 hover:text-slate-900">
+        <AppLink href="/comercial/clientes" className={buttonClass({ variant: "ghost" })}>
           Cancelar
         </AppLink>
       </div>

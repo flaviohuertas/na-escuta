@@ -1,19 +1,21 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { login } from "./helpers/auth";
+import { login, openFirstEvent } from "./helpers/auth";
 import { convertToEventViaUi, createBudgetViaUi, createClientViaUi, createDraftViaUi, createOpportunityViaUi } from "./helpers/crm";
 
 /**
- * Acessibilidade das telas (axe-core, WCAG 2.0/2.1 A e AA): contraste medido NO NAVEGADOR sobre o que
- * de fato foi desenhado, estrutura (listas, regiões rolantes, links) e nomes. Zero violações.
+ * Acessibilidade das telas (axe-core, WCAG 2.0, 2.1 e 2.2 A e AA): contraste medido NO NAVEGADOR sobre o que
+ * de fato foi desenhado, estrutura (listas, regiões rolantes, links), nomes e — pelo WCAG 2.2 — o TAMANHO
+ * dos alvos de toque (`target-size`, 24 px). Zero violações.
  *
  * O que o axe NÃO faz: julgar se um texto faz sentido, ler com leitor de tela de verdade, nem testar
  * em aparelho. Os "incompletos" (contraste sobre imagem, por exemplo) ficam fora — aqui não há imagem
- * de fundo com texto.
+ * de fundo com texto. Também não mede a BORDA dos campos (WCAG 1.4.11): isso está em
+ * `tests/unit/design/tokens.test.ts`, calculado a partir das classes dos campos.
  */
 
 const FIELD_STAFF_EMAIL = "equipe@naescuta.com.br"; // criado pelo seed: equipe de campo, sem escritório
-const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
+const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
 async function expectAccessible(page: Page, label: string) {
   // Sem "networkidle": o app faz ping de conectividade de tempos em tempos e a rede nunca fica ociosa.
@@ -134,6 +136,59 @@ for (const [device, viewport] of [
         await page.goto(path);
         await expectAccessible(page, `${path} (equipe de campo)`);
       }
+    });
+
+    // As telas que a equipe usa no celular durante o evento: leem do aparelho (IndexedDB), então o teste
+    // prepara o evento e cria os dados pela própria tela — lista com item, detalhe e confirmação aberta.
+    test("telas de campo com dados: evento, tarefas, checklists e ocorrências", async ({ page }) => {
+      test.slow();
+      const stamp = String(Date.now()).slice(-5); // nomes curtos e únicos: o teste roda no desktop e no celular
+      await login(page);
+      await openFirstEvent(page);
+      const eventPath = new URL(page.url()).pathname;
+
+      const prepare = page.getByRole("button", { name: "Preparar evento para uso offline" });
+      if (await prepare.isVisible()) {
+        await prepare.click();
+        await expect(page.getByText("Disponível offline", { exact: true })).toBeVisible({ timeout: 30_000 });
+      }
+      await expectAccessible(page, "evento (campo)");
+
+      // Tarefas: lista com uma tarefa e a confirmação de exclusão aberta
+      const task = `Cabos ${stamp}`;
+      await page.goto(`${eventPath}/tarefas`);
+      await page.getByLabel("Nova tarefa").fill(task);
+      await page.getByRole("button", { name: "Adicionar" }).click();
+      await expect(page.getByText(task, { exact: true })).toBeVisible();
+      await expectAccessible(page, "tarefas");
+      await page.getByRole("button", { name: `Excluir tarefa: ${task}` }).click();
+      await expect(page.getByRole("group", { name: "Confirmar exclusão" })).toBeVisible();
+      await expectAccessible(page, "tarefas (confirmando a exclusão)");
+      await page.getByRole("button", { name: "Cancelar" }).click();
+
+      // Checklists: lista e detalhe com um item
+      const checklist = `Montagem ${stamp}`;
+      const item = `Testar som ${stamp}`;
+      await page.goto(`${eventPath}/checklists`);
+      await page.getByLabel("Novo checklist").fill(checklist);
+      await page.getByRole("button", { name: "Criar" }).click();
+      await expectAccessible(page, "checklists");
+      await page.getByRole("link", { name: new RegExp(checklist) }).click();
+      await expect(page.getByRole("heading", { name: checklist })).toBeVisible();
+      await page.getByLabel("Novo item").fill(item);
+      await page.getByRole("button", { name: "Adicionar" }).click();
+      await expect(page.getByText(item, { exact: true })).toBeVisible();
+      await expectAccessible(page, "checklist (detalhe)");
+
+      // Ocorrências: lista e detalhe
+      const occurrence = `Gerador ${stamp}`;
+      await page.goto(`${eventPath}/ocorrencias`);
+      await page.getByLabel("Título").fill(occurrence);
+      await page.getByRole("button", { name: "Registrar ocorrência" }).click();
+      await expectAccessible(page, "ocorrências");
+      await page.getByRole("link", { name: new RegExp(occurrence) }).click();
+      await expect(page.getByRole("heading", { name: occurrence })).toBeVisible();
+      await expectAccessible(page, "ocorrência (detalhe)");
     });
 
     test("o painel 'Mais' aberto (celular) e a confirmação de sair", async ({ page }) => {

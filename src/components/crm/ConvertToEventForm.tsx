@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { callApi } from "@/components/admin/api";
-import { Field, inputClass, issuesByField } from "@/components/crm/Field";
+import { Field, RequiredNote, inputClass, issuesByField } from "@/components/crm/Field";
+import { buttonClass } from "@/components/ui/Button";
+import { useFocusFirstInvalid } from "@/components/ui/use-focus-first-invalid";
 import { ConvertToEventSchema } from "@/lib/domain/crm.schema";
 import { isoToLocalInput, localInputToIso } from "@/lib/domain/datetime-local";
 import { EVENT_STATUS_LABEL } from "@/lib/domain/event-labels";
@@ -42,6 +44,8 @@ export function ConvertToEventForm({
   const [error, setError] = useState<string | null>(null);
   const [outdated, setOutdated] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
+  const formRef = useRef<HTMLFormElement>(null);
+  useFocusFirstInvalid(formRef, fieldErrors);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -79,7 +83,8 @@ export function ConvertToEventForm({
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="mt-3 space-y-4" aria-label="Criar evento a partir da oportunidade">
+    <form ref={formRef} onSubmit={onSubmit} noValidate className="mt-3 space-y-4" aria-label="Criar evento a partir da oportunidade">
+      <RequiredNote />
       {error && (
         <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
           <p>{error}</p>
@@ -95,17 +100,17 @@ export function ConvertToEventForm({
         </div>
       )}
 
-      <Field id="conv-name" label="Nome do evento" error={fieldErrors.name}>
+      <Field id="conv-name" label="Nome do evento" error={fieldErrors.name} required>
         <input id="conv-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={200} className={inputClass} />
       </Field>
       <Field id="conv-location" label="Local (opcional)" error={fieldErrors.location}>
         <input id="conv-location" value={location} onChange={(e) => setLocation(e.target.value)} maxLength={300} className={inputClass} />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field id="conv-start" label="Início do evento" error={fieldErrors.startDate}>
+        <Field id="conv-start" label="Início do evento" error={fieldErrors.startDate} required>
           <input id="conv-start" type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} className={inputClass} />
         </Field>
-        <Field id="conv-end" label="Término do evento" error={fieldErrors.endDate}>
+        <Field id="conv-end" label="Término do evento" error={fieldErrors.endDate} required>
           <input id="conv-end" type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} className={inputClass} />
         </Field>
       </div>
@@ -125,7 +130,7 @@ export function ConvertToEventForm({
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-md bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-60"
+        className={buttonClass()}
       >
         {submitting ? "Criando…" : "Criar evento e marcar como ganha"}
       </button>

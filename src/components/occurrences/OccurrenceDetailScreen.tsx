@@ -1,13 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { AppLink } from "@/components/ui/AppLink";
+import { useId, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getDb } from "@/lib/db/dexie/db";
-import type { LocalOccurrence, LocalOccurrenceEvidence } from "@/lib/db/dexie/schema";
+import type { LocalOccurrence } from "@/lib/db/dexie/schema";
 import { addOccurrenceEvidence, updateOccurrenceStatus } from "@/lib/repositories/occurrence.repository";
 import { getOrCreateDeviceId } from "@/lib/auth/device-id";
 import { SyncStatusBadge } from "@/components/sync/SyncStatusBadge";
+import { EmptyState, LoadingLine } from "@/components/ui/EmptyState";
+import { Icon } from "@/components/ui/Icon";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 const STATUS_FLOW: LocalOccurrence["status"][] = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
 const STATUS_LABEL: Record<LocalOccurrence["status"], string> = {
@@ -38,6 +40,8 @@ export function OccurrenceDetailScreen({
   companyId: string;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const statusId = useId();
+  const fileId = useId();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -47,14 +51,10 @@ export function OccurrenceDetailScreen({
     async () => (await getDb().occurrences.get(occurrenceId)) ?? null,
     [occurrenceId]
   );
-  const evidence = useLiveQuery(
-    async () => {
-      const rows = await getDb().occurrenceEvidence.where("occurrenceId").equals(occurrenceId).toArray();
-      return rows.filter((e) => !e.deletedAt);
-    },
-    [occurrenceId],
-    [] as LocalOccurrenceEvidence[]
-  );
+  const evidence = useLiveQuery(async () => {
+    const rows = await getDb().occurrenceEvidence.where("occurrenceId").equals(occurrenceId).toArray();
+    return rows.filter((e) => !e.deletedAt);
+  }, [occurrenceId]);
 
   function ctx() {
     return { userId, companyId, deviceId: getOrCreateDeviceId() };
@@ -84,16 +84,15 @@ export function OccurrenceDetailScreen({
   }
 
   if (occurrence === undefined) {
-    return <p className="text-slate-500">Carregando…</p>;
+    return <LoadingLine />;
   }
+
+  const back = { href: `/eventos/${eventId}/ocorrencias`, label: "Voltar às ocorrências" };
 
   if (occurrence === null) {
     return (
       <div className="mx-auto max-w-2xl">
-        <AppLink href={`/eventos/${eventId}/ocorrencias`} className="text-sm text-brand-600 hover:underline">
-          ← Voltar às ocorrências
-        </AppLink>
-        <h1 className="mt-2 text-xl font-semibold text-slate-900">Ocorrência não encontrada</h1>
+        <PageHeader title="Ocorrência não encontrada" back={back} />
         <p className="mt-2 text-sm text-slate-600">
           Esta ocorrência não existe neste aparelho. Ela pode ter sido excluída, ou o evento ainda não
           foi preparado/sincronizado aqui.
@@ -104,72 +103,94 @@ export function OccurrenceDetailScreen({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <AppLink href={`/eventos/${eventId}/ocorrencias`} className="text-sm text-brand-600 hover:underline">
-        ← Voltar às ocorrências
-      </AppLink>
+      <PageHeader
+        title={occurrence.title}
+        back={back}
+        description={`Registrada em ${formatDateTime(occurrence.occurredAt)}`}
+        actions={<SyncStatusBadge status={occurrence.syncStatus} />}
+      />
+      {occurrence.description && <p className="mt-3 text-base text-slate-700 [overflow-wrap:anywhere]">{occurrence.description}</p>}
 
-      <div className="mt-2 flex items-start justify-between gap-2">
-        <h1 className="text-xl font-semibold text-slate-900">{occurrence.title}</h1>
-        <SyncStatusBadge status={occurrence.syncStatus} />
-      </div>
-      <p className="text-xs text-slate-500">Registrada em {formatDateTime(occurrence.occurredAt)}</p>
-      {occurrence.description && <p className="mt-2 text-sm text-slate-700">{occurrence.description}</p>}
-
-      <div className="mt-4">
-        <span className="block text-xs font-medium text-slate-600">Status</span>
-        <div className="mt-1 flex flex-wrap gap-2">
-          {STATUS_FLOW.map((status) => (
-            <button
-              key={status}
-              type="button"
-              onClick={() => void handleStatusChange(status)}
-              className={`rounded-md border px-3 py-1.5 text-sm ${
-                occurrence.status === status
-                  ? "border-brand-500 bg-brand-50 font-medium text-brand-700"
-                  : "border-slate-300 text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {STATUS_LABEL[status]}
-            </button>
-          ))}
+      <div role="group" aria-labelledby={statusId} className="mt-6">
+        <h2 id={statusId} className="text-lg text-slate-900">
+          Status
+        </h2>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {STATUS_FLOW.map((status) => {
+            const current = occurrence.status === status;
+            return (
+              <button
+                key={status}
+                type="button"
+                aria-pressed={current}
+                onClick={() => void handleStatusChange(status)}
+                className={`inline-flex min-h-11 items-center gap-1.5 rounded-xl border-[1.5px] px-4 text-base font-semibold transition-colors ${
+                  current
+                    ? "border-brand-600 bg-brand-50 text-brand-800"
+                    : "border-slate-400 bg-white text-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                {current && <Icon name="check" size={18} />}
+                {STATUS_LABEL[status]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="mt-6">
-        <h2 className="text-sm font-medium text-slate-700">Evidências (fotos e documentos)</h2>
-        <p className="text-xs text-slate-500">
+      <section className="mt-8">
+        <h2 className="text-lg text-slate-900">Evidências (fotos e documentos)</h2>
+        <p className="mt-1 text-sm text-slate-600">
           Os arquivos ficam neste dispositivo; os metadados (nome, tamanho, checksum) são
           sincronizados para auditoria — o envio do arquivo em si é um passo futuro.
         </p>
 
-        <ul className="mt-2 space-y-1">
-          {evidence.map((item) => (
-            <li key={item.id} className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
-              <span>{item.fileName}</span>
-              <SyncStatusBadge status={item.syncStatus} />
-            </li>
-          ))}
-          {evidence.length === 0 && <p className="text-sm text-slate-500">Nenhuma evidência anexada.</p>}
-        </ul>
-
         <div className="mt-3">
+          {evidence === undefined ? (
+            <LoadingLine />
+          ) : evidence.length === 0 ? (
+            <EmptyState hint="Use o botão abaixo para tirar uma foto ou escolher um arquivo.">Nenhuma evidência anexada.</EmptyState>
+          ) : (
+            <ul className="space-y-2">
+              {evidence.map((item) => (
+                <li
+                  key={item.id}
+                  className="flex items-center justify-between gap-2 rounded-xl border border-line bg-white px-3 py-2 text-base"
+                >
+                  <span className="min-w-0 [overflow-wrap:anywhere]">{item.fileName}</span>
+                  <SyncStatusBadge status={item.syncStatus} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="mt-4">
+          <label htmlFor={fileId} className="block text-sm font-medium text-slate-700">
+            Anexar foto ou documento
+          </label>
           <input
+            id={fileId}
             ref={fileInputRef}
             type="file"
             accept="image/*,application/pdf"
             capture="environment"
             onChange={(e) => void handleFileChange(e)}
             disabled={uploading}
-            className="text-sm"
+            className="mt-1 block w-full text-base text-slate-700 file:mr-3 file:h-11 file:cursor-pointer file:rounded-xl file:border-0 file:bg-slate-100 file:px-4 file:text-base file:font-semibold file:text-slate-900 hover:file:bg-slate-200"
           />
-          {uploading && <p className="mt-1 text-xs text-slate-500">Anexando…</p>}
+          {uploading && (
+            <p role="status" className="mt-2 text-sm text-slate-600">
+              Anexando…
+            </p>
+          )}
           {uploadError && (
-            <p role="alert" className="mt-1 text-sm text-status-error">
+            <p role="alert" className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
               {uploadError}
             </p>
           )}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

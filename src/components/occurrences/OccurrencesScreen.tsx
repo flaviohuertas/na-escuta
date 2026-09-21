@@ -9,6 +9,12 @@ import type { LocalOccurrence } from "@/lib/db/dexie/schema";
 import { createOccurrence } from "@/lib/repositories/occurrence.repository";
 import { getOrCreateDeviceId } from "@/lib/auth/device-id";
 import { SyncStatusBadge } from "@/components/sync/SyncStatusBadge";
+import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card, cardClass } from "@/components/ui/Card";
+import { EmptyState, LoadingLine } from "@/components/ui/EmptyState";
+import { Field, inputClass } from "@/components/ui/Field";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 const SEVERITY_LABEL: Record<LocalOccurrence["severity"], string> = {
   LOW: "Baixa",
@@ -17,11 +23,11 @@ const SEVERITY_LABEL: Record<LocalOccurrence["severity"], string> = {
   CRITICAL: "Crítica",
 };
 
-const SEVERITY_COLOR: Record<LocalOccurrence["severity"], string> = {
-  LOW: "bg-slate-100 text-slate-700",
-  MEDIUM: "bg-amber-100 text-amber-800",
-  HIGH: "bg-orange-100 text-orange-800",
-  CRITICAL: "bg-red-100 text-red-800",
+const SEVERITY_TONE: Record<LocalOccurrence["severity"], BadgeTone> = {
+  LOW: "neutral",
+  MEDIUM: "warning",
+  HIGH: "brand",
+  CRITICAL: "danger",
 };
 
 const STATUS_LABEL: Record<LocalOccurrence["status"], string> = {
@@ -55,15 +61,12 @@ export function OccurrencesScreen({
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const occurrences = useLiveQuery(
-    async () => {
-      const db = getDb();
-      const rows = await db.occurrences.where("eventId").equals(eventId).toArray();
-      return rows.filter((o) => !o.deletedAt).sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
-    },
-    [eventId],
-    [] as LocalOccurrence[]
-  );
+  // `undefined` = o aparelho ainda está lendo; a lista vazia só aparece depois da leitura.
+  const occurrences = useLiveQuery(async () => {
+    const db = getDb();
+    const rows = await db.occurrences.where("eventId").equals(eventId).toArray();
+    return rows.filter((o) => !o.deletedAt).sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
+  }, [eventId]);
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
@@ -93,94 +96,85 @@ export function OccurrencesScreen({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <AppLink href={`/eventos/${eventId}`} className="text-sm text-brand-600 hover:underline">
-        ← Voltar ao evento
-      </AppLink>
-      <h1 className="mt-2 text-xl font-semibold text-slate-900">Ocorrências</h1>
+      <PageHeader title="Ocorrências" back={{ href: `/eventos/${eventId}`, label: "Voltar ao evento" }} />
 
-      <form onSubmit={handleCreate} className="mt-4 space-y-2 rounded-lg border border-slate-200 bg-white p-3">
-        <div>
-          <label htmlFor="occurrence-title" className="block text-xs font-medium text-slate-600">
-            Título
-          </label>
-          <input
-            id="occurrence-title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ex.: Queda de energia no palco 2"
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="occurrence-description" className="block text-xs font-medium text-slate-600">
-            Descrição (opcional)
-          </label>
-          <textarea
-            id="occurrence-description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={2}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-        </div>
-        <div className="flex items-end justify-between gap-2">
-          <div>
-            <label htmlFor="occurrence-severity" className="block text-xs font-medium text-slate-600">
-              Gravidade
-            </label>
-            <select
-              id="occurrence-severity"
-              value={severity}
-              onChange={(e) => setSeverity(e.target.value as LocalOccurrence["severity"])}
-              className="mt-1 rounded-md border border-slate-300 px-3 py-2 text-sm"
-            >
-              {Object.entries(SEVERITY_LABEL).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
+      <Card className="mt-4">
+        <form onSubmit={handleCreate} className="space-y-3">
+          <Field id="occurrence-title" label="Título">
+            <input
+              id="occurrence-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Ex.: Queda de energia no palco 2"
+              className={inputClass}
+              required
+            />
+          </Field>
+          <Field id="occurrence-description" label="Descrição (opcional)">
+            <textarea
+              id="occurrence-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              className={inputClass}
+            />
+          </Field>
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+            <Field id="occurrence-severity" label="Gravidade">
+              <select
+                id="occurrence-severity"
+                value={severity}
+                onChange={(e) => setSeverity(e.target.value as LocalOccurrence["severity"])}
+                className={inputClass}
+              >
+                {Object.entries(SEVERITY_LABEL).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
+              Registrar ocorrência
+            </Button>
           </div>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-          >
-            Registrar ocorrência
-          </button>
-        </div>
-      </form>
-      {formError && (
-        <p role="alert" className="mt-2 text-sm text-status-error">
-          {formError}
-        </p>
-      )}
+        </form>
+        {formError && (
+          <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            {formError}
+          </p>
+        )}
+      </Card>
 
-      <ul className="mt-4 space-y-2">
-        {occurrences.map((occurrence) => (
-          <li key={occurrence.id}>
-            <AppLink
-              href={occurrenceDetailHref(eventId, occurrence.id)}
-              className="block rounded-lg border border-slate-200 bg-white p-3 hover:border-brand-300"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-medium text-slate-900">{occurrence.title}</p>
-                <div className="flex items-center gap-2">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${SEVERITY_COLOR[occurrence.severity]}`}>
-                    {SEVERITY_LABEL[occurrence.severity]}
-                  </span>
-                  <SyncStatusBadge status={occurrence.syncStatus} />
-                </div>
-              </div>
-              <p className="mt-1 text-xs text-slate-500">
-                {STATUS_LABEL[occurrence.status]} · {formatDateTime(occurrence.occurredAt)}
-              </p>
-            </AppLink>
-          </li>
-        ))}
-        {occurrences.length === 0 && <p className="text-sm text-slate-500">Nenhuma ocorrência registrada.</p>}
-      </ul>
+      <div className="mt-4">
+        {occurrences === undefined ? (
+          <LoadingLine />
+        ) : occurrences.length === 0 ? (
+          <EmptyState hint="Quando algo sair do previsto, registre aqui.">Nenhuma ocorrência registrada.</EmptyState>
+        ) : (
+          <ul className="space-y-3">
+            {occurrences.map((occurrence) => (
+              <li key={occurrence.id}>
+                <AppLink
+                  href={occurrenceDetailHref(eventId, occurrence.id)}
+                  className={cardClass({ interactive: true, className: "block" })}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <p className="min-w-0 flex-1 font-semibold text-slate-900 [overflow-wrap:anywhere]">{occurrence.title}</p>
+                    <div className="flex items-center gap-2">
+                      <Badge tone={SEVERITY_TONE[occurrence.severity]}>{SEVERITY_LABEL[occurrence.severity]}</Badge>
+                      <SyncStatusBadge status={occurrence.syncStatus} />
+                    </div>
+                  </div>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {STATUS_LABEL[occurrence.status]} · {formatDateTime(occurrence.occurredAt)}
+                  </p>
+                </AppLink>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

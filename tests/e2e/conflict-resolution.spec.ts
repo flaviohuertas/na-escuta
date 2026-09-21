@@ -33,14 +33,14 @@ test.describe("Resolver conflito entre dois dispositivos", () => {
 
     // Dispositivo B avança o status da primeira tarefa ENQUANTO ONLINE —
     // sincroniza de imediato, servidor vai para version 2.
-    await deviceB.page.getByRole("button", { name: "Avançar status" }).first().click();
+    await deviceB.page.getByRole("button", { name: /^(Iniciar|Concluir|Reabrir) tarefa/ }).first().click();
     await deviceB.page.getByRole("button", { name: "Sincronizar agora" }).click();
     await expect(deviceB.page.getByText("Sincronizado").first()).toBeVisible({ timeout: 15_000 });
 
     // Dispositivo A, sem saber disso, avança a MESMA tarefa OFFLINE — ainda
     // baseado na version 1.
     await deviceA.context.setOffline(true);
-    await deviceA.page.getByRole("button", { name: "Avançar status" }).first().click();
+    await deviceA.page.getByRole("button", { name: /^(Iniciar|Concluir|Reabrir) tarefa/ }).first().click();
     await expect(deviceA.page.getByText("Pendente").first()).toBeVisible();
 
     // Reconecta e sincroniza — deve gerar conflito, não sobrescrever.

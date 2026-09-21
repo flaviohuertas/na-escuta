@@ -42,7 +42,7 @@ test.describe("Criar e editar registros offline", () => {
 
     // Ocorrência
     await page.getByRole("link", { name: /Voltar aos checklists/ }).click();
-    await page.getByRole("link", { name: "← Voltar ao evento" }).click();
+    await page.getByRole("link", { name: /Voltar ao evento/ }).click();
     await page.getByRole("link", { name: "Ocorrências" }).click();
     await page.getByLabel("Título").fill("Ocorrência registrada offline");
     await page.getByRole("button", { name: "Registrar ocorrência" }).click();

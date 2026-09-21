@@ -1,5 +1,6 @@
 "use client";
 
+import { inputClass } from "@/components/ui/Field";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { callApi } from "@/components/admin/api";
@@ -107,7 +108,7 @@ export function ApprovalInbox({ pending, decided }: { pending: ProposalView[]; d
                     onChange={(e) => setNotes((current) => ({ ...current, [proposal.id]: e.target.value }))}
                     maxLength={1000}
                     rows={2}
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                    className={inputClass}
                   />
                 </div>
 

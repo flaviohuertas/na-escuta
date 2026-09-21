@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { callApi } from "@/components/admin/api";
-import { Field, inputClass, issuesByField } from "@/components/crm/Field";
+import { Field, RequiredNote, inputClass, issuesByField } from "@/components/crm/Field";
+import { buttonClass } from "@/components/ui/Button";
+import { useFocusFirstInvalid } from "@/components/ui/use-focus-first-invalid";
 import { AppLink } from "@/components/ui/AppLink";
 import { BUDGET_CATEGORIES } from "@/lib/domain/budget";
 import { formatDocument } from "@/lib/domain/crm";
@@ -42,6 +44,8 @@ export function SupplierForm({ mode, initial }: { mode: "create" | "edit"; initi
   const [error, setError] = useState<string | null>(null);
   const [outdated, setOutdated] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
+  const formRef = useRef<HTMLFormElement>(null);
+  useFocusFirstInvalid(formRef, fieldErrors);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -83,7 +87,8 @@ export function SupplierForm({ mode, initial }: { mode: "create" | "edit"; initi
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="mt-6 space-y-4" aria-label="Dados do fornecedor">
+    <form ref={formRef} onSubmit={onSubmit} noValidate className="mt-6 space-y-4" aria-label="Dados do fornecedor">
+      <RequiredNote />
       {error && (
         <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
           <p>{error}</p>
@@ -99,7 +104,7 @@ export function SupplierForm({ mode, initial }: { mode: "create" | "edit"; initi
         </div>
       )}
 
-      <Field id="supplier-name" label="Nome" error={fieldErrors.name}>
+      <Field id="supplier-name" label="Nome" error={fieldErrors.name} required>
         <input id="supplier-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={MAX_SUPPLIER_NAME} className={inputClass} />
       </Field>
 
@@ -148,11 +153,11 @@ export function SupplierForm({ mode, initial }: { mode: "create" | "edit"; initi
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:opacity-60"
+          className={buttonClass()}
         >
           {submitting ? "Salvando…" : mode === "edit" ? "Salvar alterações" : "Cadastrar fornecedor"}
         </button>
-        <AppLink href="/fornecedores" className="text-sm text-slate-600 hover:text-slate-900">
+        <AppLink href="/fornecedores" className={buttonClass({ variant: "ghost" })}>
           Cancelar
         </AppLink>
       </div>

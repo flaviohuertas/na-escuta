@@ -5,10 +5,15 @@ import { AppLink } from "@/components/ui/AppLink";
 import { checklistDetailHref } from "@/lib/offline/routes";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getDb } from "@/lib/db/dexie/db";
-import type { LocalChecklistTemplate } from "@/lib/db/dexie/schema";
 import { createChecklistTemplate } from "@/lib/repositories/checklist.repository";
 import { getOrCreateDeviceId } from "@/lib/auth/device-id";
 import { SyncStatusBadge } from "@/components/sync/SyncStatusBadge";
+import { Button } from "@/components/ui/Button";
+import { Card, cardClass } from "@/components/ui/Card";
+import { EmptyState, LoadingLine } from "@/components/ui/EmptyState";
+import { Field, inputClass } from "@/components/ui/Field";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { ProgressBar } from "@/components/ui/ProgressBar";
 
 export function ChecklistsScreen({
   eventId,
@@ -23,15 +28,12 @@ export function ChecklistsScreen({
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const checklists = useLiveQuery(
-    async () => {
-      const db = getDb();
-      const rows = await db.checklists.where("eventId").equals(eventId).toArray();
-      return rows.filter((c) => !c.deletedAt);
-    },
-    [eventId],
-    [] as LocalChecklistTemplate[]
-  );
+  // `undefined` = o aparelho ainda está lendo; a lista vazia só aparece depois da leitura.
+  const checklists = useLiveQuery(async () => {
+    const db = getDb();
+    const rows = await db.checklists.where("eventId").equals(eventId).toArray();
+    return rows.filter((c) => !c.deletedAt);
+  }, [eventId]);
 
   const itemCounts = useLiveQuery(
     async () => {
@@ -71,64 +73,63 @@ export function ChecklistsScreen({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <AppLink href={`/eventos/${eventId}`} className="text-sm text-brand-600 hover:underline">
-        ← Voltar ao evento
-      </AppLink>
-      <h1 className="mt-2 text-xl font-semibold text-slate-900">Checklists</h1>
+      <PageHeader title="Checklists" back={{ href: `/eventos/${eventId}`, label: "Voltar ao evento" }} />
 
-      <form
-        onSubmit={handleCreate}
-        className="mt-4 flex flex-wrap items-end gap-2 rounded-lg border border-slate-200 bg-white p-3"
-      >
-        <div className="min-w-[200px] flex-1">
-          <label htmlFor="checklist-title" className="block text-xs font-medium text-slate-600">
-            Novo checklist
-          </label>
-          <input
-            id="checklist-title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ex.: Montagem do palco principal"
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            required
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-        >
-          Criar
-        </button>
-      </form>
-      {formError && (
-        <p role="alert" className="mt-2 text-sm text-status-error">
-          {formError}
-        </p>
-      )}
+      <Card className="mt-4">
+        <form onSubmit={handleCreate} className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          <Field id="checklist-title" label="Novo checklist">
+            <input
+              id="checklist-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Ex.: Montagem do palco principal"
+              className={inputClass}
+              required
+            />
+          </Field>
+          <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
+            Criar
+          </Button>
+        </form>
+        {formError && (
+          <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            {formError}
+          </p>
+        )}
+      </Card>
 
-      <ul className="mt-4 space-y-2">
-        {checklists.map((checklist) => {
-          const counts = itemCounts.get(checklist.id) ?? { total: 0, done: 0 };
-          return (
-            <li key={checklist.id}>
-              <AppLink
-                href={checklistDetailHref(eventId, checklist.id)}
-                className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white p-3 hover:border-brand-300"
-              >
-                <div>
-                  <p className="font-medium text-slate-900">{checklist.title}</p>
-                  <p className="text-xs text-slate-500">
-                    {counts.done}/{counts.total} itens concluídos
-                  </p>
-                </div>
-                <SyncStatusBadge status={checklist.syncStatus} />
-              </AppLink>
-            </li>
-          );
-        })}
-        {checklists.length === 0 && <p className="text-sm text-slate-500">Nenhum checklist ainda.</p>}
-      </ul>
+      <div className="mt-4">
+        {checklists === undefined ? (
+          <LoadingLine />
+        ) : checklists.length === 0 ? (
+          <EmptyState hint="Use o campo acima para criar o primeiro.">Nenhum checklist ainda.</EmptyState>
+        ) : (
+          <ul className="space-y-3">
+            {checklists.map((checklist) => {
+              const counts = itemCounts.get(checklist.id) ?? { total: 0, done: 0 };
+              return (
+                <li key={checklist.id}>
+                  <AppLink
+                    href={checklistDetailHref(eventId, checklist.id)}
+                    className={cardClass({ interactive: true, className: "block" })}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-slate-900 [overflow-wrap:anywhere]">{checklist.title}</p>
+                        <p className="mt-1 text-sm text-slate-600">
+                          {counts.done}/{counts.total} itens concluídos
+                        </p>
+                      </div>
+                      <SyncStatusBadge status={checklist.syncStatus} />
+                    </div>
+                    <ProgressBar done={counts.done} total={counts.total} className="mt-3" />
+                  </AppLink>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

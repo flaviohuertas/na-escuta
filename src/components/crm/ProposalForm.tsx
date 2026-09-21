@@ -3,6 +3,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { callApi } from "@/components/admin/api";
 import { Field, inputClass } from "@/components/crm/Field";
+import { buttonClass } from "@/components/ui/Button";
 import { AppLink } from "@/components/ui/AppLink";
 import { centsToInput, formatBRL, parseBRLToCents } from "@/lib/domain/crm";
 import { MAX_ITEMS, MAX_ITEM_DESCRIPTION, MAX_NOTES, MAX_QUANTITY, computeTotals } from "@/lib/domain/proposal";
@@ -285,11 +286,11 @@ export function ProposalForm({
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:opacity-60"
+          className={buttonClass()}
         >
           {submitting ? "Salvando…" : mode === "edit" ? "Salvar rascunho" : "Criar rascunho"}
         </button>
-        <AppLink href={cancelHref} className="text-sm text-slate-600 hover:text-slate-900">
+        <AppLink href={cancelHref} className={buttonClass({ variant: "ghost" })}>
           Cancelar
         </AppLink>
       </div>

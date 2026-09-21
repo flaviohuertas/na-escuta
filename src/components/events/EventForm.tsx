@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { z } from "zod";
 import { AppLink } from "@/components/ui/AppLink";
+import { Button, buttonClass } from "@/components/ui/Button";
+import { Field, RequiredNote, inputClass } from "@/components/ui/Field";
+import { useFocusFirstInvalid } from "@/components/ui/use-focus-first-invalid";
 import { getDb } from "@/lib/db/dexie/db";
 import { isoToLocalInput, localInputToIso } from "@/lib/domain/datetime-local";
 import { EVENT_STATUS_LABEL } from "@/lib/domain/event-labels";
@@ -32,9 +35,6 @@ type FieldErrors = Partial<Record<string, string[]>>;
 const OFFLINE_MESSAGE =
   "Sem conexão. Criar e editar eventos exige internet — tente de novo quando estiver conectado. O que você digitou continua aqui.";
 
-const inputClass =
-  "mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200";
-
 /**
  * Criar/editar evento. É uma ação de GESTÃO, feita online: não passa pela outbox. Por isso, sem
  * rede, o formulário diz isso com todas as letras (e mantém o que foi digitado) em vez de
@@ -52,6 +52,9 @@ export function EventForm({ mode, initial }: { mode: "create" | "edit"; initial?
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [outdated, setOutdated] = useState(false);
+
+  const formRef = useRef<HTMLFormElement>(null);
+  useFocusFirstInvalid(formRef, fieldErrors);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -131,7 +134,9 @@ export function EventForm({ mode, initial }: { mode: "create" | "edit"; initial?
   const fieldError = (field: string) => fieldErrors[field]?.[0];
 
   return (
-    <form onSubmit={onSubmit} noValidate className="mt-6 space-y-4" aria-label="Dados do evento">
+    <form ref={formRef} onSubmit={onSubmit} noValidate className="mt-6 space-y-4" aria-label="Dados do evento">
+      <RequiredNote />
+
       {error && (
         <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
           <p>{error}</p>
@@ -147,51 +152,20 @@ export function EventForm({ mode, initial }: { mode: "create" | "edit"; initial?
         </div>
       )}
 
-      <Field id="event-name" label="Nome do evento" error={fieldError("name")}>
-        <input
-          id="event-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          maxLength={200}
-          required
-          aria-invalid={Boolean(fieldError("name"))}
-          className={inputClass}
-        />
+      <Field id="event-name" label="Nome do evento" error={fieldError("name")} required>
+        <input id="event-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={200} className={inputClass} />
       </Field>
 
       <Field id="event-location" label="Local" error={fieldError("location")}>
-        <input
-          id="event-location"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          maxLength={300}
-          aria-invalid={Boolean(fieldError("location"))}
-          className={inputClass}
-        />
+        <input id="event-location" value={location} onChange={(e) => setLocation(e.target.value)} maxLength={300} className={inputClass} />
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field id="event-start" label="Início" error={fieldError("startDate")}>
-          <input
-            id="event-start"
-            type="datetime-local"
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-            required
-            aria-invalid={Boolean(fieldError("startDate"))}
-            className={inputClass}
-          />
+        <Field id="event-start" label="Início" error={fieldError("startDate")} required>
+          <input id="event-start" type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} className={inputClass} />
         </Field>
-        <Field id="event-end" label="Término" error={fieldError("endDate")}>
-          <input
-            id="event-end"
-            type="datetime-local"
-            value={end}
-            onChange={(e) => setEnd(e.target.value)}
-            required
-            aria-invalid={Boolean(fieldError("endDate"))}
-            className={inputClass}
-          />
+        <Field id="event-end" label="Término" error={fieldError("endDate")} required>
+          <input id="event-end" type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} className={inputClass} />
         </Field>
       </div>
 
@@ -217,53 +191,19 @@ export function EventForm({ mode, initial }: { mode: "create" | "edit"; initial?
           onChange={(e) => setDescription(e.target.value)}
           maxLength={4000}
           rows={4}
-          aria-invalid={Boolean(fieldError("description"))}
           className={inputClass}
         />
       </Field>
 
       <div className="flex items-center gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:opacity-60"
-        >
+        <Button type="submit" disabled={submitting}>
           {submitting ? "Salvando…" : mode === "edit" ? "Salvar alterações" : "Criar evento"}
-        </button>
-        <AppLink
-          href={mode === "edit" && initial ? `/eventos/${initial.id}` : "/eventos"}
-          className="text-sm text-slate-600 hover:text-slate-900"
-        >
+        </Button>
+        <AppLink href={mode === "edit" && initial ? `/eventos/${initial.id}` : "/eventos"} className={buttonClass({ variant: "ghost" })}>
           Cancelar
         </AppLink>
       </div>
     </form>
-  );
-}
-
-function Field({
-  id,
-  label,
-  error,
-  children,
-}: {
-  id: string;
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700">
-        {label}
-      </label>
-      {children}
-      {error && (
-        <p id={`${id}-error`} role="alert" className="mt-1 text-sm text-red-700">
-          {error}
-        </p>
-      )}
-    </div>
   );
 }
 

@@ -8,6 +8,10 @@ import { PrepareOfflineButton } from "@/components/sync/PrepareOfflineButton";
 import { CacheRoutesButton } from "@/components/sync/CacheRoutesButton";
 import { areEventRoutesCached } from "@/lib/offline/warm-routes";
 import { RevokedEventPanel } from "@/components/events/RevokedEventPanel";
+import { Badge } from "@/components/ui/Badge";
+import { cardClass } from "@/components/ui/Card";
+import { LoadingLine } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 function formatDateRange(start: string, end: string): string {
   const fmt = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -58,7 +62,7 @@ export function EventWorkspace({ eventId }: { eventId: string }) {
   }, [eventId, isPrepared, recheck]);
 
   if (event === undefined) {
-    return <p className="text-slate-500">Carregando…</p>;
+    return <LoadingLine />;
   }
 
   // Uma única árvore para os dois estados ("ainda não baixado" e "no Dexie"): assim que
@@ -71,39 +75,27 @@ export function EventWorkspace({ eventId }: { eventId: string }) {
   return (
     <div className="mx-auto max-w-3xl">
       {revoked ? null : event ? (
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900">{event.name}</h1>
-            <p className="text-sm text-slate-500">
-              {formatDateRange(event.startDate, event.endDate)}
-              {event.location ? ` · ${event.location}` : ""}
-            </p>
-          </div>
-          {!isPrepared ? (
-            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
-              Preparação incompleta
-            </span>
-          ) : routesReady === null ? (
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-              Verificando…
-            </span>
-          ) : routesReady ? (
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-800">
-              Disponível offline
-            </span>
-          ) : (
-            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
-              Telas não guardadas
-            </span>
-          )}
-        </div>
+        <PageHeader
+          title={event.name}
+          description={`${formatDateRange(event.startDate, event.endDate)}${event.location ? ` · ${event.location}` : ""}`}
+          actions={
+            !isPrepared ? (
+              <Badge tone="warning">Preparação incompleta</Badge>
+            ) : routesReady === null ? (
+              <Badge tone="neutral">Verificando…</Badge>
+            ) : routesReady ? (
+              <Badge tone="success">Disponível offline</Badge>
+            ) : (
+              <Badge tone="warning">Telas não guardadas</Badge>
+            )
+          }
+        />
       ) : (
         <div className="max-w-xl">
-          <h1 className="text-xl font-semibold text-slate-900">Evento ainda não preparado</h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Este evento ainda não foi baixado para uso offline neste dispositivo. Prepare-o agora
-            enquanto há conexão — depois disso, ele abre e funciona normalmente sem internet.
-          </p>
+          <PageHeader
+            title="Evento ainda não preparado"
+            description="Este evento ainda não foi baixado para uso offline neste dispositivo. Prepare-o agora enquanto há conexão — depois disso, ele abre e funciona normalmente sem internet."
+          />
         </div>
       )}
 
@@ -128,25 +120,20 @@ export function EventWorkspace({ eventId }: { eventId: string }) {
       )}
 
       {event && !revoked && (
-        <nav className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <AppLink
-            href={`/eventos/${eventId}/tarefas`}
-            className="rounded-lg border border-slate-200 bg-white p-4 text-center font-medium text-slate-800 shadow-sm hover:border-brand-300"
-          >
-            Tarefas
-          </AppLink>
-          <AppLink
-            href={`/eventos/${eventId}/checklists`}
-            className="rounded-lg border border-slate-200 bg-white p-4 text-center font-medium text-slate-800 shadow-sm hover:border-brand-300"
-          >
-            Checklists
-          </AppLink>
-          <AppLink
-            href={`/eventos/${eventId}/ocorrencias`}
-            className="rounded-lg border border-slate-200 bg-white p-4 text-center font-medium text-slate-800 shadow-sm hover:border-brand-300"
-          >
-            Ocorrências
-          </AppLink>
+        <nav aria-label="Áreas do evento" className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {[
+            { href: `/eventos/${eventId}/tarefas`, label: "Tarefas" },
+            { href: `/eventos/${eventId}/checklists`, label: "Checklists" },
+            { href: `/eventos/${eventId}/ocorrencias`, label: "Ocorrências" },
+          ].map((area) => (
+            <AppLink
+              key={area.href}
+              href={area.href}
+              className={cardClass({ interactive: true, className: "flex min-h-16 items-center justify-center text-center text-lg font-semibold text-slate-900" })}
+            >
+              {area.label}
+            </AppLink>
+          ))}
         </nav>
       )}
     </div>

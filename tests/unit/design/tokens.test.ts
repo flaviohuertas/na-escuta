@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -71,6 +72,12 @@ const PAIRS: Array<[string, string, number, string]> = [
   ["status-offline", "white", TEXT, "offline"],
   ["status-synced", "white", TEXT, "evento preparado, exportado"],
   ["status-synced", "paper", TEXT, "idem, sobre o papel"],
+  // Componentes de interface (WCAG 1.4.11, 3:1): onde o campo começa e onde está o foco
+  ["slate-400", "white", GRAPHIC, "borda dos campos de formulário"],
+  ["slate-400", "paper", GRAPHIC, "borda dos campos sobre o papel"],
+  ["slate-400", "slate-100", GRAPHIC, "borda do campo desabilitado (fundo slate-100)"],
+  ["brand-600", "white", GRAPHIC, "contorno de foco"],
+  ["brand-600", "paper", GRAPHIC, "contorno de foco sobre o papel"],
   // Elementos gráficos
   ["status-synced", "white", GRAPHIC, "ponto de online"],
   ["brand-500", "ink", GRAPHIC, "marca sobre a tinta"],
@@ -91,5 +98,38 @@ describe("tokens de cor: contraste medido", () => {
     // Guarda contra usar `text-slate-400` (escuro) em fundo escuro: o par certo para a tinta é `ink-muted`.
     expect(contrast("slate-400", "ink")).toBeLessThan(TEXT);
     expect(contrast("ink-muted", "ink")).toBeGreaterThanOrEqual(TEXT);
+  });
+});
+
+/**
+ * As BORDAS de campo, medidas a partir das classes que o app de fato usa (não de uma lista à parte).
+ * Antes o campo tinha `border-slate-300` (1,5:1) e ninguém notou: o axe não mede borda, e o teste acima só
+ * media texto. O WCAG 1.4.11 pede 3:1 para reconhecer onde o campo começa.
+ */
+describe("bordas dos campos", () => {
+  const field = readFileSync("src/components/ui/Field.tsx", "utf8");
+
+  function borderTokenOf(constName: string): string {
+    const declaration = field.match(new RegExp(`export const ${constName} =\\s*"([^"]+)"`));
+    if (!declaration?.[1]) throw new Error(`não achei ${constName} em Field.tsx`);
+    const border = declaration[1].match(/\bborder-(slate-\d+)\b/);
+    if (!border?.[1]) throw new Error(`${constName} não declara a cor da borda`);
+    return border[1];
+  }
+
+  it.each(["inputClass", "compactSelectClass"])("%s: a borda passa de 3:1 sobre o branco e sobre o papel", (constName) => {
+    const token = borderTokenOf(constName);
+    expect(contrast(token, "white")).toBeGreaterThanOrEqual(GRAPHIC);
+    expect(contrast(token, "paper")).toBeGreaterThanOrEqual(GRAPHIC);
+  });
+
+  it("nenhum arquivo do app volta a escrever o campo à mão com a borda clara ou o anel fraco de antes", () => {
+    // Só CAMPO (`mt-1 …`, como os antigos): botões secundários também usam `border-slate-300`, e a borda deles
+    // não é o que os identifica (o texto é).
+    const stale = /mt-1 (w-full )?rounded-md border border-slate-300|focus:ring-brand-200/;
+    const offenders = (readdirSync("src", { recursive: true }) as string[])
+      .filter((file) => file.endsWith(".tsx"))
+      .filter((file) => stale.test(readFileSync(join("src", file), "utf8")));
+    expect(offenders).toEqual([]);
   });
 });

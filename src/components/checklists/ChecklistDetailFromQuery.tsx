@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { AppLink } from "@/components/ui/AppLink";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { ChecklistDetailScreen } from "./ChecklistDetailScreen";
 
 /**
@@ -22,10 +22,11 @@ export function ChecklistDetailFromQuery({
   if (!checklistId) {
     return (
       <div className="mx-auto max-w-2xl">
-        <AppLink href={`/eventos/${eventId}/checklists`} className="text-sm text-brand-600 hover:underline">
-          ← Voltar aos checklists
-        </AppLink>
-        <p className="mt-3 text-slate-600">Nenhum checklist foi indicado.</p>
+        <PageHeader
+          title="Checklist"
+          description="Nenhum checklist foi indicado."
+          back={{ href: `/eventos/${eventId}/checklists`, label: "Voltar aos checklists" }}
+        />
       </div>
     );
   }

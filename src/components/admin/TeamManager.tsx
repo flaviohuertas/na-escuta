@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { compactSelectClass, inputClass } from "@/components/ui/Field";
 import { COMPANY_ROLE_LABEL } from "@/lib/domain/event-labels";
 import { AddMemberSchema } from "@/lib/domain/team.schema";
 import { callApi } from "./api";
@@ -24,10 +25,7 @@ interface TemporaryPassword {
   kind: "created" | "reset";
 }
 
-const selectClass =
-  "rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200";
-const inputClass =
-  "mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200";
+const selectClass = compactSelectClass;
 
 /**
  * A equipe da empresa. Cada ação é uma ida ao servidor, que revalida tudo (hierarquia de papéis,

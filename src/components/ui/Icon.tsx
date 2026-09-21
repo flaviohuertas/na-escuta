@@ -70,6 +70,8 @@ const PATHS = {
   ),
   mais: <path d="M4 6h16M4 12h16M4 18h16" />,
   fechar: <path d="M18 6L6 18M6 6l12 12" />,
+  voltar: <path d="M15 18l-6-6 6-6" />,
+  check: <path d="M20 6L9 17l-5-5" />,
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof PATHS;
