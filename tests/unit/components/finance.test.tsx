@@ -53,7 +53,7 @@ describe("ExpenseForm — lançar", () => {
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(url).toBe(`/api/financeiro/eventos/${EVENT}/lancamentos`);
     expect(init.method).toBe("POST");
-    expect(JSON.parse(init.body)).toEqual({ category: "AV", description: "Sonorização — sinal", supplier: "Som Alfa", amountCents: 300_000, expenseDate: "2027-01-08", notes: null });
+    expect(JSON.parse(init.body)).toEqual({ category: "AV", description: "Sonorização — sinal", supplier: "Som Alfa", supplierId: null, amountCents: 300_000, expenseDate: "2027-01-08", notes: null });
     expect(await screen.findByRole("status")).toHaveTextContent("Lançamento salvo.");
     // Pronto para o próximo: o que é do lançamento some; categoria e data ficam.
     expect(screen.getByLabelText("Descrição")).toHaveValue("");
@@ -146,7 +146,7 @@ describe("ExpenseForm — editar", () => {
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(url).toBe("/api/financeiro/lancamentos/e-9");
     expect(init.method).toBe("PATCH");
-    expect(JSON.parse(init.body)).toEqual({ category: "FOOD", description: "Buffet", supplier: null, amountCents: 450_000, expenseDate: "2027-01-08", notes: "Sinal", baseVersion: 4 });
+    expect(JSON.parse(init.body)).toEqual({ category: "FOOD", description: "Buffet", supplier: null, supplierId: null, amountCents: 450_000, expenseDate: "2027-01-08", notes: "Sinal", baseVersion: 4 });
     expect(refresh).not.toHaveBeenCalled();
   });
 

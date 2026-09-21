@@ -4,6 +4,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { callApi } from "@/components/admin/api";
 import { Field, inputClass } from "@/components/crm/Field";
 import { AppLink } from "@/components/ui/AppLink";
+import { SupplierSelect, type SupplierChoice } from "@/components/suppliers/SupplierSelect";
 import {
   BUDGET_CATEGORIES,
   MAX_BUDGET_ITEMS,
@@ -21,7 +22,7 @@ import { centsToInput, formatBRL, parseBRLToCents } from "@/lib/domain/crm";
 import { navigateToDocument } from "@/lib/offline/navigate";
 
 export interface BudgetFormInitial {
-  items: Array<{ category: string; description: string; quantity: number; unitCostCents: number; supplier: string | null }>;
+  items: Array<{ category: string; description: string; quantity: number; unitCostCents: number; supplier: string | null; supplierId?: string | null }>;
   notes: string | null;
 }
 
@@ -30,13 +31,15 @@ interface Row {
   category: string;
   description: string;
   supplier: string;
+  /** O fornecedor do cadastro escolhido ("" = nenhum). */
+  supplierId: string;
   quantity: string;
   cost: string;
 }
 
 /** A chave de cada linha do formulário (só para o React separar as linhas; não vai para o servidor). */
 let rowKeyCounter = 0;
-const newRow = (values: Partial<Omit<Row, "key">> = {}): Row => ({ key: rowKeyCounter++, category: "", description: "", supplier: "", quantity: "1", cost: "", ...values });
+const newRow = (values: Partial<Omit<Row, "key">> = {}): Row => ({ key: rowKeyCounter++, category: "", description: "", supplier: "", supplierId: "", quantity: "1", cost: "", ...values });
 
 const parseQuantity = (text: string): number | null => (/^\d+$/.test(text.trim()) ? Number(text.trim()) : null);
 
@@ -52,10 +55,13 @@ export function BudgetForm({
   initial,
   revenue,
   cancelHref,
+  suppliers = [],
 }: {
   opportunityId: string;
   version: number;
   initial?: BudgetFormInitial;
+  /** Os fornecedores do cadastro para escolher (vazio: só o texto livre). */
+  suppliers?: readonly SupplierChoice[];
   /** A receita de referência (para mostrar a margem enquanto se digita); `null` se não há. */
   revenue: { cents: number; label: string } | null;
   cancelHref: string;
@@ -67,6 +73,7 @@ export function BudgetForm({
             category: item.category,
             description: item.description,
             supplier: item.supplier ?? "",
+            supplierId: item.supplierId ?? "",
             quantity: String(item.quantity),
             cost: centsToInput(item.unitCostCents),
           })
@@ -106,7 +113,15 @@ export function BudgetForm({
       const unitCostCents = row.cost.trim() ? parseBRLToCents(row.cost) : null;
       if (quantity === null) problems[index] = "Informe a quantidade como um número inteiro.";
       else if (unitCostCents === null) problems[index] = row.cost.trim() ? "Informe o custo como 3.000,00 (vírgula nos centavos)." : "Informe o custo do item.";
-      return { category: row.category, description: row.description, quantity: quantity ?? 0, unitCostCents: unitCostCents ?? 0, supplier: row.supplier.trim() ? row.supplier : null };
+      return {
+        category: row.category,
+        description: row.description,
+        quantity: quantity ?? 0,
+        unitCostCents: unitCostCents ?? 0,
+        // Com fornecedor do cadastro vale o vínculo (o servidor guarda o nome dele); sem, o texto digitado.
+        supplier: row.supplierId ? null : row.supplier.trim() ? row.supplier : null,
+        supplierId: row.supplierId || null,
+      };
     });
     if (Object.keys(problems).length > 0) {
       setRowErrors(problems);
@@ -184,12 +199,16 @@ export function BudgetForm({
                   </label>
                 </div>
                 <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_6rem_9rem]">
-                  <label className="block">
+                  <div className="block">
                     <span aria-hidden="true" className="text-xs text-slate-500">
                       Fornecedor (opcional)
                     </span>
-                    <input aria-label={`Fornecedor do item ${n}`} value={row.supplier} onChange={(e) => updateRow(row.key, { supplier: e.target.value })} maxLength={MAX_SUPPLIER} className={inputClass} />
-                  </label>
+                    {/* Um do cadastro (vincula pelo id) ou, sem cadastro, o nome digitado. */}
+                    <SupplierSelect label={`Fornecedor cadastrado do item ${n}`} suppliers={suppliers} value={row.supplierId} onChange={(supplierId) => updateRow(row.key, { supplierId })} />
+                    {!row.supplierId && (
+                      <input aria-label={`Fornecedor do item ${n}`} value={row.supplier} onChange={(e) => updateRow(row.key, { supplier: e.target.value })} maxLength={MAX_SUPPLIER} className={inputClass} />
+                    )}
+                  </div>
                   <label className="block">
                     <span aria-hidden="true" className="text-xs text-slate-500">
                       Qtd.

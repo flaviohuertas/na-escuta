@@ -4,6 +4,7 @@ import { MAX_VALUE_CENTS } from "./crm";
 import { optionalText } from "./crm.schema";
 import { MAX_EXPENSE_NOTES, MAX_VOID_REASON, MIN_VOID_REASON_LENGTH } from "./finance";
 import { DateOnlySchema } from "./proposal.schema";
+import { SupplierLinkSchema } from "./supplier.schema";
 
 /**
  * Estritos como os do orçamento e das propostas: campo desconhecido leva 422 em vez de ser ignorado
@@ -13,7 +14,10 @@ import { DateOnlySchema } from "./proposal.schema";
 const ExpenseFieldsSchema = z.strictObject({
   category: z.enum(BUDGET_CATEGORY_CODES, { error: "Escolha a categoria." }),
   description: z.string().trim().min(2, "Descreva o lançamento.").max(MAX_ITEM_DESCRIPTION, "Descrição longa demais."),
+  /** O fornecedor como texto livre — só vale quando não há `supplierId` (o do cadastro prevalece). */
   supplier: optionalText(MAX_SUPPLIER),
+  /** O fornecedor do CADASTRO, se houver; o servidor confere empresa e arquivamento e guarda o nome dele. */
+  supplierId: SupplierLinkSchema,
   amountCents: z
     .number()
     .int("O valor precisa estar em centavos.")

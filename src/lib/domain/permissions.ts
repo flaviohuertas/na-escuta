@@ -47,6 +47,19 @@ export function canManageBudget(companyRole: string): boolean {
 }
 
 /**
+ * Papéis que cuidam do CADASTRO DE FORNECEDORES (nome, documento, contato, categoria): titular,
+ * administração e produção — a produção é quem fala com o fornecedor no dia a dia, então mantém a
+ * agenda. O que o cadastro NÃO abre para a produção é o dinheiro: quanto se gastou e quanto se
+ * orçou com cada fornecedor é do financeiro (`canManageFinance`) e continua só de quem manda.
+ * Regra própria, para poder divergir da do comercial. Falha fechada.
+ */
+const COMPANY_ROLES_THAT_MANAGE_SUPPLIERS: ReadonlySet<string> = new Set(["OWNER", "ADMIN", "PRODUCER"]);
+
+export function canManageSuppliers(companyRole: string): boolean {
+  return COMPANY_ROLES_THAT_MANAGE_SUPPLIERS.has(companyRole);
+}
+
+/**
  * Papéis que veem e lançam o FINANCEIRO do evento (custo realizado, margem realizada): só o titular
  * e a administração, como no orçamento — dinheiro de verdade da produtora. Regra própria (não
  * reaproveita a do orçamento) para poder divergir: o financeiro podia, um dia, ganhar um papel

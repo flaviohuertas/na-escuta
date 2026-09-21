@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { callApi } from "@/components/admin/api";
 import { Field, inputClass, issuesByField } from "@/components/crm/Field";
 import { AppLink } from "@/components/ui/AppLink";
+import { SupplierSelect, type SupplierChoice } from "@/components/suppliers/SupplierSelect";
 import { BUDGET_CATEGORIES, MAX_ITEM_DESCRIPTION, MAX_SUPPLIER } from "@/lib/domain/budget";
 import { centsToInput, parseBRLToCents } from "@/lib/domain/crm";
 import { MAX_EXPENSE_NOTES } from "@/lib/domain/finance";
@@ -16,6 +17,7 @@ export interface ExpenseFormInitial {
   category: string;
   description: string;
   supplier: string | null;
+  supplierId?: string | null;
   amountCents: number;
   /** "2027-01-10" */
   expenseDate: string;
@@ -34,9 +36,12 @@ export function ExpenseForm({
   eventId,
   defaultDate,
   initial,
+  suppliers = [],
 }: {
   mode: "create" | "edit";
   eventId: string;
+  /** Os fornecedores do cadastro para escolher (vazio: só o texto livre). */
+  suppliers?: readonly SupplierChoice[];
   /** O dia de hoje em Brasília ("2027-01-10"), a data padrão de um lançamento novo. */
   defaultDate: string;
   initial?: ExpenseFormInitial;
@@ -45,6 +50,7 @@ export function ExpenseForm({
   const [category, setCategory] = useState(initial?.category ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [supplier, setSupplier] = useState(initial?.supplier ?? "");
+  const [supplierId, setSupplierId] = useState(initial?.supplierId ?? "");
   const [amount, setAmount] = useState(initial ? centsToInput(initial.amountCents) : "");
   const [expenseDate, setExpenseDate] = useState(initial?.expenseDate ?? defaultDate);
   const [notes, setNotes] = useState(initial?.notes ?? "");
@@ -72,7 +78,9 @@ export function ExpenseForm({
     const payload = {
       category,
       description,
-      supplier: supplier.trim() ? supplier : null,
+      // Com fornecedor do cadastro vale o vínculo (o servidor guarda o nome dele); sem, o texto digitado.
+      supplier: supplierId ? null : supplier.trim() ? supplier : null,
+      supplierId: supplierId || null,
       amountCents: cents,
       expenseDate,
       notes: notes.trim() ? notes : null,
@@ -104,6 +112,7 @@ export function ExpenseForm({
     // Criar: fica na tela, limpa o que é do lançamento (mantém a data e a categoria para o próximo) e atualiza a lista.
     setDescription("");
     setSupplier("");
+    setSupplierId("");
     setAmount("");
     setNotes("");
     setSaved(true);
@@ -156,8 +165,18 @@ export function ExpenseForm({
         <Field id="expense-amount" label="Valor (R$)" error={fieldErrors.amountCents} hint="Ex.: 3.000,00">
           <input id="expense-amount" value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" className={inputClass} />
         </Field>
-        <Field id="expense-supplier" label="Fornecedor (opcional)" error={fieldErrors.supplier}>
-          <input id="expense-supplier" value={supplier} onChange={(e) => setSupplier(e.target.value)} maxLength={MAX_SUPPLIER} className={inputClass} />
+        <Field id="expense-supplier" label="Fornecedor (opcional)" error={fieldErrors.supplier ?? fieldErrors.supplierId}>
+          {suppliers.length > 0 ? (
+            <>
+              {/* Um do cadastro (vincula pelo id) ou, sem cadastro, o nome digitado. */}
+              <SupplierSelect id="expense-supplier" label="Fornecedor cadastrado" suppliers={suppliers} value={supplierId} onChange={setSupplierId} />
+              {!supplierId && (
+                <input aria-label="Nome do fornecedor (não cadastrado)" value={supplier} onChange={(e) => setSupplier(e.target.value)} maxLength={MAX_SUPPLIER} className={inputClass} />
+              )}
+            </>
+          ) : (
+            <input id="expense-supplier" value={supplier} onChange={(e) => setSupplier(e.target.value)} maxLength={MAX_SUPPLIER} className={inputClass} />
+          )}
         </Field>
       </div>
 

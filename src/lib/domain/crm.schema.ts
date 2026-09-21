@@ -17,14 +17,14 @@ export const optionalText = (max: number) =>
  * CPF/CNPJ opcional: aceita com ou sem máscara e devolve só os dígitos. Se veio, os dígitos
  * verificadores têm de conferir — um documento digitado errado não entra e depois "duplica" o cliente.
  */
-const optionalDocument = z
+export const optionalDocument = z
   .string()
   .trim()
   .nullish()
   .transform((value) => (value ? onlyDigits(value) : null))
   .refine((digits) => digits === null || isValidDocument(digits), { message: "CPF ou CNPJ inválido." });
 
-const optionalEmail = z
+export const optionalEmail = z
   .string()
   .trim()
   .nullish()

@@ -57,7 +57,7 @@ describe("BudgetForm — montar", () => {
     expect(url).toBe(`/api/comercial/oportunidades/${OPP}/orcamento`);
     expect(init.method).toBe("PUT");
     expect(JSON.parse(init.body)).toEqual({
-      items: [{ category: "AV", description: "Sonorização", quantity: 2, unitCostCents: 300_000, supplier: "Som Alfa" }],
+      items: [{ category: "AV", description: "Sonorização", quantity: 2, unitCostCents: 300_000, supplier: "Som Alfa", supplierId: null }],
       notes: "Montagem em 2 dias",
       baseVersion: 0,
     });
@@ -219,7 +219,7 @@ describe("BudgetForm — editar", () => {
 
     await waitFor(() => expect(navigateToDocument).toHaveBeenCalledWith(BACK));
     expect(JSON.parse(fetchMock.mock.calls[0]![1].body)).toEqual({
-      items: [{ category: "AV", description: "Sonorização", quantity: 2, unitCostCents: 300_000, supplier: "Som Alfa" }],
+      items: [{ category: "AV", description: "Sonorização", quantity: 2, unitCostCents: 300_000, supplier: "Som Alfa", supplierId: null }],
       notes: "Premissa",
       baseVersion: 3,
     });

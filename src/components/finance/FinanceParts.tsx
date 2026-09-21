@@ -194,6 +194,8 @@ export interface ExpenseRow {
   category: string;
   description: string;
   supplier: string | null;
+  /** O fornecedor do cadastro, se houver: o nome vira link para a ficha dele. */
+  supplierId?: string | null;
   amountCents: number;
   expenseDate: Date;
   notes: string | null;
@@ -216,7 +218,18 @@ export function ExpenseList({ eventId, expenses }: { eventId: string; expenses: 
               <p className={`font-medium ${voided ? "text-slate-400 line-through" : "text-slate-900"}`}>{expense.description}</p>
               <p className="mt-0.5 text-xs text-slate-500">
                 {formatExpenseDate(dateOnlyFromDate(expense.expenseDate))} · {categoryLabel(expense.category)}
-                {expense.supplier ? ` · ${expense.supplier}` : ""}
+                {expense.supplier && (
+                  <>
+                    {" · "}
+                    {expense.supplierId ? (
+                      <AppLink href={`/fornecedores/${expense.supplierId}`} className="text-brand-700 hover:underline" data-testid="supplier-link">
+                        {expense.supplier}
+                      </AppLink>
+                    ) : (
+                      expense.supplier
+                    )}
+                  </>
+                )}
               </p>
               {expense.notes && <p className="mt-0.5 text-xs text-slate-500">{expense.notes}</p>}
               {voided && expense.voidedAt && (

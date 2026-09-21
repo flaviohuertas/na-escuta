@@ -23,6 +23,7 @@ describe("lançar um custo", () => {
       category: "AV",
       description: "Som",
       supplier: "Alfa",
+      supplierId: null,
       amountCents: 300_000,
       expenseDate: "2027-01-08",
       notes: null,

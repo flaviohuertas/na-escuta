@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { MAX_VALUE_CENTS } from "./crm";
 import { optionalText } from "./crm.schema";
+import { SupplierLinkSchema } from "./supplier.schema";
 import {
   BUDGET_CATEGORY_CODES,
   MAX_BUDGET_ITEMS,
@@ -28,7 +29,10 @@ export const BudgetItemSchema = z.strictObject({
     .int("O custo precisa estar em centavos.")
     .min(0, "O custo não pode ser negativo.")
     .max(MAX_VALUE_CENTS, "Custo acima do limite de R$ 20 milhões."),
+  /** O fornecedor como texto livre — só vale quando não há `supplierId` (o do cadastro prevalece). */
   supplier: optionalText(MAX_SUPPLIER),
+  /** O fornecedor do CADASTRO, se houver; o servidor confere empresa e arquivamento e guarda o nome dele. */
+  supplierId: SupplierLinkSchema,
 });
 export type BudgetItemInput = z.infer<typeof BudgetItemSchema>;
 

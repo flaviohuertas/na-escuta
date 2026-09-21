@@ -11,6 +11,7 @@ import {
 } from "@/lib/domain/budget";
 import type { BudgetSaveInput } from "@/lib/domain/budget.schema";
 import { AdminActionError } from "@/server/errors";
+import { resolveSupplierLinks } from "@/server/suppliers/link";
 import { lockOpportunity, requireBudget } from "./access";
 import { toHistory } from "./history";
 
@@ -34,6 +35,7 @@ function budgetSnapshot(budget: BudgetWithItems) {
         quantity: item.quantity,
         unitCostCents: item.unitCostCents,
         supplier: item.supplier,
+        supplierId: item.supplierId,
       })),
   };
 }
@@ -132,7 +134,19 @@ export async function saveBudget(params: {
     // Sem orçamento a "versão" é 0: quem abriu a tela vazia e chega depois de outra pessoa criar recebe 409.
     if ((current?.version ?? 0) !== baseVersion) throw new AdminActionError(STALE_MESSAGE, 409);
 
-    const rows = items.map((item, position) => ({ position, ...item }));
+    // Fornecedores do cadastro: da empresa, e sem vínculo NOVO com arquivado (o que já estava vinculado segue valendo).
+    const alreadyLinked = new Set((current?.items ?? []).map((item) => item.supplierId).filter((id): id is string => id !== null));
+    const names = await resolveSupplierLinks(tx, params.companyId, items.map((item) => item.supplierId), alreadyLinked);
+    const rows = items.map((item, position) => ({
+      position,
+      category: item.category,
+      description: item.description,
+      quantity: item.quantity,
+      unitCostCents: item.unitCostCents,
+      supplierId: item.supplierId ?? null,
+      // Com vínculo, o nome é o do cadastro (o texto livre é ignorado); sem vínculo, vale o texto.
+      supplier: item.supplierId ? (names.get(item.supplierId) ?? null) : (item.supplier ?? null),
+    }));
     const log = (action: string, before: Prisma.InputJsonValue | undefined, saved: BudgetWithItems) =>
       tx.auditLog.create({
         data: {

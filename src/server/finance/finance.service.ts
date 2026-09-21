@@ -6,6 +6,7 @@ import type { ExpenseInput, ExpenseUpdateInput, ExpenseVoidInput } from "@/lib/d
 import { dateOnlyFromDate, dateOnlyToDate, todayInSaoPaulo } from "@/lib/domain/proposal";
 import { AdminActionError } from "@/server/errors";
 import { toHistory } from "@/server/crm/history";
+import { resolveSupplierLinks } from "@/server/suppliers/link";
 import { requireFinance } from "./access";
 
 const LIST_LIMIT = 200;
@@ -21,6 +22,7 @@ function expenseSnapshot(expense: EventExpense) {
     category: expense.category,
     description: expense.description,
     supplier: expense.supplier,
+    supplierId: expense.supplierId,
     amountCents: expense.amountCents,
     expenseDate: dateOnlyFromDate(expense.expenseDate),
     notes: expense.notes,
@@ -193,13 +195,17 @@ export async function createExpense(params: { userId: string; companyId: string;
     const event = await tx.event.findFirst({ where: { id: params.eventId, companyId: params.companyId, deletedAt: null }, select: { id: true } });
     if (!event) throw new AdminActionError("Evento não encontrado.", 404);
 
+    // Fornecedor do cadastro: da empresa e não arquivado (com a linha travada); o nome legível é o do cadastro.
+    const names = await resolveSupplierLinks(tx, params.companyId, [input.supplierId]);
+
     const created = await tx.eventExpense.create({
       data: {
         companyId: params.companyId,
         eventId: event.id,
         category: input.category,
         description: input.description,
-        supplier: input.supplier,
+        supplier: input.supplierId ? (names.get(input.supplierId) ?? null) : (input.supplier ?? null),
+        supplierId: input.supplierId ?? null,
         amountCents: input.amountCents,
         expenseDate: dateOnlyToDate(input.expenseDate),
         notes: input.notes,
@@ -251,12 +257,16 @@ export async function updateExpense(params: {
     if (!current) throw new AdminActionError("Lançamento não encontrado.", 404);
     if (current.voidedAt) throw new AdminActionError(VOIDED_MESSAGE, 409);
 
+    // O vínculo que o lançamento já tinha segue valendo mesmo que o fornecedor tenha sido arquivado depois.
+    const names = await resolveSupplierLinks(tx, params.companyId, [fields.supplierId], new Set(current.supplierId ? [current.supplierId] : []));
+
     const written = await tx.eventExpense.updateMany({
       where: { id: current.id, companyId: params.companyId, version: baseVersion, voidedAt: null },
       data: {
         category: fields.category,
         description: fields.description,
-        supplier: fields.supplier,
+        supplier: fields.supplierId ? (names.get(fields.supplierId) ?? null) : (fields.supplier ?? null),
+        supplierId: fields.supplierId ?? null,
         amountCents: fields.amountCents,
         expenseDate: dateOnlyToDate(fields.expenseDate),
         notes: fields.notes,

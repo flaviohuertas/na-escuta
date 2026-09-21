@@ -18,6 +18,7 @@ describe("item do orçamento", () => {
       quantity: 2,
       unitCostCents: 300_000,
       supplier: "Alfa",
+      supplierId: null,
     });
     expect(BudgetItemSchema.parse(item({ supplier: "   " })).supplier).toBeNull();
     expect(BudgetItemSchema.parse({ category: "AV", description: "Som", quantity: 1, unitCostCents: 0 }).supplier).toBeNull();

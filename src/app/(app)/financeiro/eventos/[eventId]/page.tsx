@@ -7,6 +7,7 @@ import { formatDateBR } from "@/lib/domain/crm";
 import { EVENT_STATUS_LABEL } from "@/lib/domain/event-labels";
 import type { EventStatus } from "@/lib/domain/event.schema";
 import { getEventFinance } from "@/server/finance/finance.service";
+import { listSupplierOptions } from "@/server/suppliers/supplier.service";
 
 /**
  * O financeiro de um evento: o resumo (receita, previsto, lançado, margens), a comparação por
@@ -18,8 +19,11 @@ export default async function EventFinancePage({ params }: { params: Promise<{ e
   const { eventId } = await params;
 
   let view: Awaited<ReturnType<typeof getEventFinance>>;
+  let suppliers: Awaited<ReturnType<typeof listSupplierOptions>>;
   try {
-    view = await getEventFinance({ userId: session.user.id, companyId: session.user.companyId, eventId });
+    const ctx = { userId: session.user.id, companyId: session.user.companyId };
+    view = await getEventFinance({ ...ctx, eventId });
+    suppliers = await listSupplierOptions(ctx);
   } catch (err) {
     return financeErrorView(err);
   }
@@ -70,7 +74,7 @@ export default async function EventFinancePage({ params }: { params: Promise<{ e
         {/* Sempre visível: quem lança custo lança vários em sequência, e o aviso "Lançamento salvo." tem de aparecer. */}
         <div className="mt-2 rounded-lg border border-slate-200 bg-white p-4" data-testid="new-expense">
           <h3 className="text-sm font-semibold text-slate-800">Novo lançamento</h3>
-          <ExpenseForm mode="create" eventId={event.id} defaultDate={today} />
+          <ExpenseForm mode="create" eventId={event.id} defaultDate={today} suppliers={suppliers} />
         </div>
         <ExpenseList eventId={event.id} expenses={expenses} />
         {truncated && (

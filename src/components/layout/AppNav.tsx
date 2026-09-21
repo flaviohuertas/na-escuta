@@ -6,6 +6,7 @@ export function AppNav({
   canManageTeam = false,
   canManageCrm = false,
   canManageFinance = false,
+  canManageSuppliers = false,
   pendingApprovals = 0,
 }: {
   userName: string;
@@ -14,6 +15,8 @@ export function AppNav({
   canManageCrm?: boolean;
   /** O financeiro (custo realizado e margem): só titular e administração. */
   canManageFinance?: boolean;
+  /** O cadastro de fornecedores: titular, administração e produção. */
+  canManageSuppliers?: boolean;
   /** Propostas esperando a decisão desta pessoa. */
   pendingApprovals?: number;
 }) {
@@ -32,6 +35,11 @@ export function AppNav({
         {canManageCrm && (
           <AppLink href="/comercial" className="text-sm text-slate-300 hover:text-white">
             Comercial
+          </AppLink>
+        )}
+        {canManageSuppliers && (
+          <AppLink href="/fornecedores" className="text-sm text-slate-300 hover:text-white">
+            Fornecedores
           </AppLink>
         )}
         {canManageFinance && (

@@ -1,3 +1,4 @@
+import { AppLink } from "@/components/ui/AppLink";
 import { categoryLabel, formatBps, type BudgetTotals, type Margin, type RevenueReference } from "@/lib/domain/budget";
 import { formatBRL } from "@/lib/domain/crm";
 
@@ -68,6 +69,8 @@ export interface BudgetTableItem {
   quantity: number;
   unitCostCents: number;
   supplier: string | null;
+  /** O fornecedor do cadastro, se houver: o nome vira link para a ficha dele. */
+  supplierId?: string | null;
 }
 
 /** Os itens agrupados por categoria (na ordem do orçamento), com o subtotal de cada uma e o total. */
@@ -110,7 +113,14 @@ export function BudgetTable({ items, totals }: { items: BudgetTableItem[]; total
                     <tr key={item.id} className="border-t border-slate-50" data-testid="budget-item">
                       <td className="px-4 py-1.5 text-slate-900">
                         {item.description}
-                        {item.supplier && <span className="block text-xs text-slate-500">{item.supplier}</span>}
+                        {item.supplier &&
+                          (item.supplierId ? (
+                            <AppLink href={`/fornecedores/${item.supplierId}`} className="block text-xs text-brand-700 hover:underline" data-testid="supplier-link">
+                              {item.supplier}
+                            </AppLink>
+                          ) : (
+                            <span className="block text-xs text-slate-500">{item.supplier}</span>
+                          ))}
                       </td>
                       <td className="px-3 py-1.5 text-right tabular-nums">{item.quantity}</td>
                       <td className="px-3 py-1.5 text-right tabular-nums">{formatBRL(item.unitCostCents)}</td>

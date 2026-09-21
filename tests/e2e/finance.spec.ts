@@ -9,7 +9,11 @@ async function addExpense(page: Page, values: { category: string; description: s
   await page.getByLabel("Categoria").selectOption(values.category);
   await page.getByLabel("Descrição").fill(values.description);
   await page.getByLabel("Valor (R$)").fill(values.amount);
-  if (values.supplier) await page.getByLabel(/Fornecedor/).fill(values.supplier);
+  if (values.supplier) {
+    // Com fornecedores cadastrados na empresa o formulário ganha um seletor; o nome digitado fica no campo de texto.
+    const hasRegistry = (await page.getByLabel("Fornecedor cadastrado").count()) > 0;
+    await (hasRegistry ? page.getByLabel("Nome do fornecedor (não cadastrado)") : page.getByLabel(/Fornecedor/)).fill(values.supplier);
+  }
   await page.getByRole("button", { name: "Lançar custo" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Lançamento salvo." })).toBeVisible();
 }

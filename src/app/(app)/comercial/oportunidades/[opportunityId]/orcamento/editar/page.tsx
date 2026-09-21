@@ -3,6 +3,7 @@ import { BudgetForm } from "@/components/crm/BudgetForm";
 import { crmErrorView } from "@/components/crm/CrmParts";
 import { requireSession } from "@/lib/auth/require-session";
 import { getBudgetSummary } from "@/server/crm/budget.service";
+import { listSupplierOptions } from "@/server/suppliers/supplier.service";
 
 /** Montar ou editar o orçamento interno. Ao vivo; sem cache do Service Worker. */
 export default async function EditBudgetPage({ params }: { params: Promise<{ opportunityId: string }> }) {
@@ -10,8 +11,13 @@ export default async function EditBudgetPage({ params }: { params: Promise<{ opp
   const { opportunityId } = await params;
 
   let view: Awaited<ReturnType<typeof getBudgetSummary>>;
+  let suppliers: Awaited<ReturnType<typeof listSupplierOptions>>;
   try {
-    view = await getBudgetSummary({ userId: session.user.id, companyId: session.user.companyId, opportunityId });
+    const ctx = { userId: session.user.id, companyId: session.user.companyId };
+    view = await getBudgetSummary({ ...ctx, opportunityId });
+    // Os fornecedores para escolher: os ativos e os que o orçamento já cita (mesmo arquivados, para não perder o vínculo ao editar).
+    const linked = (view.budget?.items ?? []).map((item) => item.supplierId).filter((id): id is string => id !== null);
+    suppliers = await listSupplierOptions({ ...ctx, alsoIds: linked });
   } catch (err) {
     return crmErrorView(err);
   }
@@ -45,12 +51,14 @@ export default async function EditBudgetPage({ params }: { params: Promise<{ opp
                     quantity: item.quantity,
                     unitCostCents: item.unitCostCents,
                     supplier: item.supplier,
+                    supplierId: item.supplierId,
                   })),
                   notes: budget.notes,
                 }
               : undefined
           }
           revenue={revenue ? { cents: revenue.cents, label: revenue.label } : null}
+          suppliers={suppliers}
           cancelHref={back}
         />
       )}

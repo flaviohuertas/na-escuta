@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/auth/require-session";
 import { dateOnlyFromDate } from "@/lib/domain/proposal";
 import { AdminActionError } from "@/server/errors";
 import { getExpense } from "@/server/finance/finance.service";
+import { listSupplierOptions } from "@/server/suppliers/supplier.service";
 
 /** Editar um lançamento ativo. O estornado não se edita (a tela diz). Ao vivo; fora do cache do Service Worker. */
 export default async function EditExpensePage({ params }: { params: Promise<{ eventId: string; expenseId: string }> }) {
@@ -12,8 +13,12 @@ export default async function EditExpensePage({ params }: { params: Promise<{ ev
   const { eventId, expenseId } = await params;
 
   let data: Awaited<ReturnType<typeof getExpense>>;
+  let suppliers: Awaited<ReturnType<typeof listSupplierOptions>>;
   try {
-    data = await getExpense({ userId: session.user.id, companyId: session.user.companyId, expenseId });
+    const ctx = { userId: session.user.id, companyId: session.user.companyId };
+    data = await getExpense({ ...ctx, expenseId });
+    // Os ativos e o que o lançamento já cita (mesmo arquivado, para não perder o vínculo ao editar).
+    suppliers = await listSupplierOptions({ ...ctx, alsoIds: data.expense.supplierId ? [data.expense.supplierId] : [] });
   } catch (err) {
     return financeErrorView(err);
   }
@@ -37,11 +42,13 @@ export default async function EditExpensePage({ params }: { params: Promise<{ ev
           mode="edit"
           eventId={event.id}
           defaultDate={dateOnlyFromDate(expense.expenseDate)}
+          suppliers={suppliers}
           initial={{
             id: expense.id,
             category: expense.category,
             description: expense.description,
             supplier: expense.supplier,
+            supplierId: expense.supplierId,
             amountCents: expense.amountCents,
             expenseDate: dateOnlyFromDate(expense.expenseDate),
             notes: expense.notes,
