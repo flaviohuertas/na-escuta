@@ -309,5 +309,31 @@ describe("canal do aparelho sem sessão — device-status (integração — Post
         expect(res.status, JSON.stringify(body)?.slice(0, 30)).toBe(400);
       }
     });
+
+    it("bloqueia requisições inválidas repetidas do mesmo IP para evitar força bruta no grant", async () => {
+      const headers = new Headers({ "x-forwarded-for": "203.0.113.77" });
+
+      for (let i = 0; i < 5; i += 1) {
+        const res = await POST(
+          new Request("http://localhost/api/auth/device-status", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ jwt: "lixo" }),
+          })
+        );
+        expect(res.status).toBe(401);
+      }
+
+      const blocked = await POST(
+        new Request("http://localhost/api/auth/device-status", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ jwt: "lixo" }),
+        })
+      );
+
+      expect(blocked.status).toBe(429);
+      expect(await blocked.json()).toEqual({ status: "rate_limited" });
+    });
   });
 });

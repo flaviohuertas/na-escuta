@@ -38,10 +38,11 @@ describe("AddMemberSchema", () => {
 });
 
 describe("ChangeMemberSchema", () => {
-  it("exige o papel ou a situação (ao menos um)", () => {
+  it("exige o papel, a situação ou a conta (ao menos um)", () => {
     expect(ChangeMemberSchema.safeParse({}).success).toBe(false);
     expect(ChangeMemberSchema.safeParse({ role: "VIEWER" }).success).toBe(true);
     expect(ChangeMemberSchema.safeParse({ status: "REVOKED" }).success).toBe(true);
+    expect(ChangeMemberSchema.safeParse({ isActive: false }).success).toBe(true);
     expect(ChangeMemberSchema.safeParse({ status: "PENDING" }).success).toBe(false);
   });
 });

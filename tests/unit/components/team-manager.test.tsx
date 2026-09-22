@@ -7,11 +7,11 @@ const refresh = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 
 const rows: TeamRow[] = [
-  { membershipId: "m-eu", name: "Eu Titular", email: "eu@x.com", role: "OWNER", status: "ACTIVE", mustChangePassword: false, isSelf: true, canModify: false },
-  { membershipId: "m-ana", name: "Ana Produtora", email: "ana@x.com", role: "PRODUCER", status: "ACTIVE", mustChangePassword: false, isSelf: false, canModify: true },
-  { membershipId: "m-novo", name: "Novo Nome", email: "novo@x.com", role: "STAFF", status: "ACTIVE", mustChangePassword: true, isSelf: false, canModify: true },
-  { membershipId: "m-par", name: "Par Admin", email: "par@x.com", role: "ADMIN", status: "ACTIVE", mustChangePassword: false, isSelf: false, canModify: false },
-  { membershipId: "m-saiu", name: "Quem Saiu", email: "saiu@x.com", role: "STAFF", status: "REVOKED", mustChangePassword: false, isSelf: false, canModify: true },
+  { membershipId: "m-eu", name: "Eu Titular", email: "eu@x.com", role: "OWNER", status: "ACTIVE", isActive: true, mustChangePassword: false, isSelf: true, canModify: false },
+  { membershipId: "m-ana", name: "Ana Produtora", email: "ana@x.com", role: "PRODUCER", status: "ACTIVE", isActive: true, mustChangePassword: false, isSelf: false, canModify: true },
+  { membershipId: "m-novo", name: "Novo Nome", email: "novo@x.com", role: "STAFF", status: "ACTIVE", isActive: true, mustChangePassword: true, isSelf: false, canModify: true },
+  { membershipId: "m-par", name: "Par Admin", email: "par@x.com", role: "ADMIN", status: "ACTIVE", isActive: true, mustChangePassword: false, isSelf: false, canModify: false },
+  { membershipId: "m-saiu", name: "Quem Saiu", email: "saiu@x.com", role: "STAFF", status: "REVOKED", isActive: false, mustChangePassword: false, isSelf: false, canModify: true },
 ];
 const assignable = ["PRODUCER", "STAFF", "FREELANCER", "VIEWER"];
 
@@ -202,6 +202,19 @@ describe("TeamManager", () => {
       const [url, init] = fetchMock.mock.calls[0]!;
       expect(url).toBe("/api/equipe/m-ana/senha");
       expect(init.method).toBe("POST");
+    });
+
+    it("desativar a conta pede confirmação e envia o toggle do estado da conta", async () => {
+      const user = userEvent.setup();
+      fetchMock.mockReturnValue(respond(200, { membership: {} }));
+      render(<TeamManager members={rows} assignableRoles={assignable} />);
+
+      await user.click(screen.getByRole("button", { name: "Desativar a conta de Ana Produtora" }));
+      expect(screen.getByText(/Desativar a conta de/i)).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Confirmar" }));
+
+      await waitFor(() => expect(refresh).toHaveBeenCalled());
+      expect(JSON.parse(fetchMock.mock.calls[0]![1].body)).toEqual({ isActive: false });
     });
 
     it("reativar avisa que os acessos a eventos não voltam sozinhos", async () => {

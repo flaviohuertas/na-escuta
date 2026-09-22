@@ -44,6 +44,7 @@ export default async function TeamPage() {
           email: m.email,
           role: m.role,
           status: m.status,
+          isActive: m.isActive,
           mustChangePassword: m.mustChangePassword,
           isSelf: m.isSelf,
           canModify: m.canModify,

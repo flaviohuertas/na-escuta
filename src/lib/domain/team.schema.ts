@@ -19,12 +19,13 @@ export const AddMemberSchema = z.object({
   role: CompanyRoleSchema,
 });
 
-/** Mudar o papel na empresa e/ou encerrar/reativar o vínculo. Pelo menos um dos dois. */
+/** Mudar o papel na empresa, encerrar/reativar o vínculo ou desativar/reativar a conta. */
 export const ChangeMemberSchema = z
   .object({
     role: CompanyRoleSchema.optional(),
     status: AccessStatusSchema.optional(),
+    isActive: z.boolean().optional(),
   })
-  .refine((v) => v.role !== undefined || v.status !== undefined, {
-    message: "Informe o papel ou a situação.",
+  .refine((v) => v.role !== undefined || v.status !== undefined || v.isActive !== undefined, {
+    message: "Informe o papel, a situação ou a conta.",
   });

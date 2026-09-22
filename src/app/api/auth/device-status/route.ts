@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { evaluateDeviceGrant, InvalidGrantError } from "@/server/auth/device-status.service";
+import { deviceStatusRateLimiter, getClientIp } from "@/server/auth/rate-limit";
 
 const BodySchema = z.object({ jwt: z.string().min(1).max(4096) });
 
@@ -16,15 +17,25 @@ const NO_STORE = { "Cache-Control": "no-store" };
  * NUNCA apaga nada por causa dele: só um veredito `revoked` assinado por esta rota apaga.
  */
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const precheck = deviceStatusRateLimiter.beforeRequest(ip);
+  if (!precheck.allowed) {
+    return NextResponse.json({ status: "rate_limited" }, { status: 429, headers: { ...NO_STORE, "Retry-After": String(Math.ceil((precheck.retryAfterMs ?? 0) / 1000)) } });
+  }
+
   const body = BodySchema.safeParse(await request.json().catch(() => null));
   if (!body.success) {
+    deviceStatusRateLimiter.recordFailure(ip);
     return NextResponse.json({ status: "invalid" }, { status: 400, headers: NO_STORE });
   }
 
   try {
-    return NextResponse.json(await evaluateDeviceGrant(body.data.jwt), { headers: NO_STORE });
+    const verdict = await evaluateDeviceGrant(body.data.jwt);
+    deviceStatusRateLimiter.recordSuccess(ip);
+    return NextResponse.json(verdict, { headers: NO_STORE });
   } catch (err) {
     if (err instanceof InvalidGrantError) {
+      deviceStatusRateLimiter.recordFailure(ip);
       return NextResponse.json({ status: "invalid" }, { status: 401, headers: NO_STORE });
     }
     throw err;

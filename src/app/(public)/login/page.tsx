@@ -4,12 +4,19 @@ import { Button } from "@/components/ui/Button";
 import { inputClass } from "@/components/ui/Field";
 import { LogoMark, Wordmark } from "@/components/ui/Logo";
 import { auth, signIn } from "@/lib/auth/auth.config";
+import { getLoginLockState } from "@/server/auth/credentials";
 
 async function loginAction(formData: FormData) {
   "use server";
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+
+  if (await getLoginLockState(email) === "blocked") {
+    redirect("/login?erro=bloqueado");
+  }
+
   try {
     await signIn("credentials", {
-      email: formData.get("email"),
+      email,
       password: formData.get("password"),
       redirectTo: "/eventos",
     });
@@ -45,9 +52,15 @@ export default async function LoginPage({
           internet.
         </p>
 
-        {erro && (
+        {erro === "credenciais" && (
           <p role="alert" className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
             E-mail ou senha inválidos.
+          </p>
+        )}
+
+        {erro === "bloqueado" && (
+          <p role="alert" className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            Muitas tentativas seguidas. Tente novamente em alguns minutos.
           </p>
         )}
 

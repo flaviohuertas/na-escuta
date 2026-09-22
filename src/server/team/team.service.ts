@@ -15,6 +15,7 @@ export interface TeamMemberView {
   email: string;
   role: CompanyRole;
   status: AccessStatus;
+  isActive: boolean;
   /** A pessoa ainda não trocou a senha provisória. */
   mustChangePassword: boolean;
   isSelf: boolean;
@@ -62,7 +63,7 @@ export async function listTeam(params: { actorId: string; companyId: string }) {
   const actorRole = await requireCompanyAdmin(params.actorId, params.companyId);
   const memberships = await prisma.membership.findMany({
     where: { companyId: params.companyId },
-    include: { user: { select: { name: true, email: true, mustChangePassword: true } } },
+    include: { user: { select: { name: true, email: true, mustChangePassword: true, isActive: true } } },
   });
 
   const members: TeamMemberView[] = memberships
@@ -73,6 +74,7 @@ export async function listTeam(params: { actorId: string; companyId: string }) {
       email: m.user.email,
       role: m.role,
       status: m.status,
+      isActive: m.user.isActive,
       mustChangePassword: m.user.mustChangePassword,
       isSelf: m.userId === params.actorId,
       canModify: m.userId !== params.actorId && canModifyMember(actorRole, m.role),
@@ -194,6 +196,7 @@ export async function changeMember(params: {
   membershipId: string;
   role?: CompanyRole;
   status?: AccessStatus;
+  isActive?: boolean;
 }) {
   const actorRole = await requireCompanyAdmin(params.actorId, params.companyId);
   const target = await loadMembership(params.companyId, params.membershipId);
@@ -201,7 +204,8 @@ export async function changeMember(params: {
 
   const nextRole = params.role ?? target.role;
   const nextStatus = params.status ?? target.status;
-  if (nextRole === target.role && nextStatus === target.status) return target;
+  const nextIsActive = params.isActive ?? target.user.isActive;
+  if (nextRole === target.role && nextStatus === target.status && nextIsActive === target.user.isActive) return target;
 
   if (nextRole !== target.role && !(assignableCompanyRoles(actorRole) as string[]).includes(nextRole)) {
     throw new AdminActionError("Você não pode conceder este papel.", 403);
@@ -218,6 +222,17 @@ export async function changeMember(params: {
   return prisma.$transaction(async (tx) => {
     let revokedAccessCount = 0;
     let revokedDeviceCount = 0;
+    const toggledAccount = params.isActive !== undefined && params.isActive !== target.user.isActive;
+    if (toggledAccount) {
+      await tx.user.update({ where: { id: target.userId }, data: { isActive: params.isActive! } });
+      await bumpSessionVersion(tx, target.userId);
+      const revokedDevices = await tx.device.updateMany({
+        where: { userId: target.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      revokedDeviceCount = revokedDevices.count;
+    }
+
     if (wasActive && !willBeActive) {
       const managed = await tx.eventAccess.findMany({
         where: {
@@ -276,20 +291,36 @@ export async function changeMember(params: {
       },
     });
 
-    const action = wasActive && !willBeActive ? "MEMBER_REVOKED" : !wasActive && willBeActive ? "MEMBER_REACTIVATED" : "MEMBER_ROLE_CHANGED";
+    const action =
+      toggledAccount && params.isActive === false
+        ? "ACCOUNT_DISABLED"
+        : toggledAccount && params.isActive === true
+          ? "ACCOUNT_REACTIVATED"
+          : wasActive && !willBeActive
+            ? "MEMBER_REVOKED"
+            : !wasActive && willBeActive
+              ? "MEMBER_REACTIVATED"
+              : "MEMBER_ROLE_CHANGED";
+
     await tx.auditLog.create({
       data: {
         companyId: params.companyId,
         userId: params.actorId,
-        entityType: "Membership",
-        entityId: target.id,
+        entityType: toggledAccount ? "User" : "Membership",
+        entityId: toggledAccount ? target.userId : target.id,
         action,
-        beforeJson: { userId: target.userId, role: target.role, status: target.status },
-        afterJson: { userId: target.userId, role: updated.role, status: updated.status },
+        beforeJson: toggledAccount
+          ? { userId: target.userId, isActive: target.user.isActive }
+          : { userId: target.userId, role: target.role, status: target.status },
+        afterJson: toggledAccount
+          ? { userId: target.userId, isActive: nextIsActive }
+          : { userId: target.userId, role: updated.role, status: updated.status },
         metadata:
           action === "MEMBER_REVOKED"
             ? { eventAccessRevoked: revokedAccessCount, devicesRevoked: revokedDeviceCount }
-            : undefined,
+            : toggledAccount
+              ? { devicesRevoked: revokedDeviceCount }
+              : undefined,
       },
     });
     return updated;

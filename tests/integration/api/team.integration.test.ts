@@ -218,6 +218,22 @@ describe("equipe e senha (integração — Postgres real)", () => {
       expect(audit.afterJson).toMatchObject({ role: "PRODUCER" });
     });
 
+    it("desativa e reativa a conta sem encerrar o vínculo da empresa", async () => {
+      const { company, owner } = await setup();
+      const staff = await person(company.id, "STAFF");
+      await prisma.device.create({ data: { id: "device-123", userId: staff.user.id, companyId: company.id, label: "Teste" } });
+
+      await changeMember({ actorId: owner.id, companyId: company.id, membershipId: staff.membership.id, isActive: false });
+      let after = await prisma.user.findUniqueOrThrow({ where: { id: staff.user.id } });
+      expect(after.isActive).toBe(false);
+      expect((await prisma.membership.findUniqueOrThrow({ where: { id: staff.membership.id } })).status).toBe("ACTIVE");
+      expect((await prisma.device.findUniqueOrThrow({ where: { id: "device-123" } })).revokedAt).not.toBeNull();
+
+      await changeMember({ actorId: owner.id, companyId: company.id, membershipId: staff.membership.id, isActive: true });
+      after = await prisma.user.findUniqueOrThrow({ where: { id: staff.user.id } });
+      expect(after.isActive).toBe(true);
+    });
+
     it("a administração não altera titular nem par, nem concede papel de cima; altera papéis de baixo", async () => {
       const { company, owner } = await setup();
       const admin = await person(company.id, "ADMIN");

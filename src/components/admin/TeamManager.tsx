@@ -13,6 +13,7 @@ export interface TeamRow {
   email: string;
   role: string;
   status: "ACTIVE" | "REVOKED";
+  isActive: boolean;
   mustChangePassword: boolean;
   isSelf: boolean;
   canModify: boolean;
@@ -43,7 +44,7 @@ export function TeamManager({ members, assignableRoles }: { members: TeamRow[]; 
   const [notice, setNotice] = useState<string | null>(null);
   const [temp, setTemp] = useState<TemporaryPassword | null>(null);
   const [copied, setCopied] = useState(false);
-  const [confirming, setConfirming] = useState<{ id: string; kind: "revoke" | "reset" } | null>(null);
+  const [confirming, setConfirming] = useState<{ id: string; kind: "revoke" | "reset" | "toggle-account" } | null>(null);
 
   function reset() {
     setError(null);
@@ -86,7 +87,7 @@ export function TeamManager({ members, assignableRoles }: { members: TeamRow[]; 
     router.refresh();
   }
 
-  async function onChange(row: TeamRow, patch: { role?: string; status?: "ACTIVE" | "REVOKED" }, done: string) {
+  async function onChange(row: TeamRow, patch: { role?: string; status?: "ACTIVE" | "REVOKED"; isActive?: boolean }, done: string) {
     reset();
     setBusy(row.membershipId);
     const result = await callApi("PATCH", `/api/equipe/${row.membershipId}`, patch);
@@ -290,6 +291,15 @@ export function TeamManager({ members, assignableRoles }: { members: TeamRow[]; 
                         <button
                           type="button"
                           disabled={rowBusy}
+                          onClick={() => setConfirming({ id: row.membershipId, kind: "toggle-account" })}
+                          aria-label={row.isActive ? `Desativar a conta de ${row.name}` : `Reativar a conta de ${row.name}`}
+                          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                        >
+                          {row.isActive ? "Desativar conta" : "Reativar conta"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={rowBusy}
                           onClick={() => setConfirming({ id: row.membershipId, kind: "reset" })}
                           aria-label={`Redefinir a senha de ${row.name}`}
                           className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
@@ -331,6 +341,14 @@ export function TeamManager({ members, assignableRoles }: { members: TeamRow[]; 
                         Os aparelhos dela tiram de si os dados da empresa assim que se conectarem; só ficam as alterações
                         que ela ainda não enviou, para ela exportar ou descartar.
                       </p>
+                    ) : confirming!.kind === "toggle-account" ? (
+                      <p>
+                        {row.isActive ? "Desativar" : "Reativar"} a conta de <strong>{row.name}</strong>?{" "}
+                        {row.isActive
+                          ? "Ela deixa de entrar em qualquer empresa e os aparelhos dela passam a receber "
+                            + "o veredito de conta desativada quando se conectarem."
+                          : "Ela volta a poder entrar com a senha atual, mas o vínculo da empresa continua o mesmo."}
+                      </p>
                     ) : (
                       <p>
                         Redefinir a senha de <strong>{row.name}</strong>? A senha atual deixa de valer, ela sai de todos os
@@ -345,7 +363,9 @@ export function TeamManager({ members, assignableRoles }: { members: TeamRow[]; 
                         onClick={() =>
                           confirming!.kind === "revoke"
                             ? void onChange(row, { status: "REVOKED" }, "Vínculo encerrado e acessos retirados.")
-                            : void onResetPassword(row)
+                            : confirming!.kind === "toggle-account"
+                              ? void onChange(row, { isActive: !row.isActive }, row.isActive ? "Conta desativada." : "Conta reativada.")
+                              : void onResetPassword(row)
                         }
                         className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700"
                       >

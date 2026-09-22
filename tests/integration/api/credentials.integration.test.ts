@@ -4,7 +4,7 @@
  */
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createMembership, createTestCompany, createTestPrismaClient, truncateAll } from "../helpers/factories";
-import { authenticateCredentials } from "@/server/auth/credentials";
+import { authenticateCredentials, getLoginLockState } from "@/server/auth/credentials";
 import { hashPassword } from "@/server/auth/password";
 
 const prisma = createTestPrismaClient();
@@ -62,6 +62,29 @@ describe("authenticateCredentials (integração — Postgres real)", () => {
     expect(await authenticateCredentials({ email: "ana@produtora.com.br", password: "errada" })).toBeNull();
     expect(await authenticateCredentials({ email: "ninguem@x.com", password: PASSWORD })).toBeNull();
     expect(await authenticateCredentials({ email: "desativada@x.com", password: PASSWORD })).toBeNull();
+  });
+
+  it("bloqueia novas tentativas após várias falhas seguidas no mesmo e-mail", async () => {
+    await account();
+    const email = "ana@produtora.com.br";
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      expect(await authenticateCredentials({ email, password: "errada" })).toBeNull();
+    }
+
+    expect(await authenticateCredentials({ email, password: PASSWORD })).toBeNull();
+  });
+
+  it("marca como bloqueado quando a conta entrou em lockout por tentativas repetidas", async () => {
+    const user = await account();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { failedLoginAttempts: 5, lockedUntil: new Date(Date.now() + 60_000) },
+    });
+
+    expect(await getLoginLockState("ana@produtora.com.br")).toBe("blocked");
+    expect(await getLoginLockState("naoexiste@x.com")).toBe("clear");
+    expect(await authenticateCredentials({ email: "ana@produtora.com.br", password: PASSWORD })).toBeNull();
   });
 
   it("recusa quem não tem vínculo ativo com nenhuma empresa — nunca, nem com a senha certa", async () => {

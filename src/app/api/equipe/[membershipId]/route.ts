@@ -21,6 +21,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ me
       membershipId,
       role: body.data.role,
       status: body.data.status,
+      isActive: body.data.isActive,
     });
     return NextResponse.json({ membership });
   } catch (err) {
