@@ -4,6 +4,9 @@ import { OpportunityForm } from "@/components/crm/OpportunityForm";
 import { requireSession } from "@/lib/auth/require-session";
 import { listClientOptions } from "@/server/crm/client.service";
 import { listOwnerOptions } from "@/server/crm/opportunity.service";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { buttonClass } from "@/components/ui/Button";
 
 /** Abrir uma oportunidade. `?clienteId=` já vem com o cliente escolhido (a partir da tela do cliente). */
 export default async function NewOpportunityPage({ searchParams }: { searchParams: Promise<{ clienteId?: string }> }) {
@@ -20,12 +23,12 @@ export default async function NewOpportunityPage({ searchParams }: { searchParam
   }
 
   return (
-    <div className="mx-auto max-w-xl">
-      <h1 className="text-2xl font-semibold text-slate-900">Nova oportunidade</h1>
+    <div className="max-w-xl">
+      <PageHeader back={{ href: "/comercial", label: "Funil" }} title="Nova oportunidade" />
       {clients.length === 0 ? (
-        <div className="mt-4 rounded-md bg-slate-100 px-4 py-3 text-sm text-slate-700">
-          <p>Cadastre um cliente antes de abrir uma oportunidade.</p>
-          <AppLink href="/comercial/clientes/novo" className="mt-3 inline-block font-medium text-brand-700 hover:underline">
+        <div className="mt-6">
+          <EmptyState hint="Toda oportunidade é de um cliente.">Cadastre um cliente antes de abrir uma oportunidade.</EmptyState>
+          <AppLink href="/comercial/clientes/novo" className={buttonClass({ className: "mt-4" })}>
             Cadastrar cliente
           </AppLink>
         </div>

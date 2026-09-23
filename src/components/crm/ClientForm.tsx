@@ -82,13 +82,13 @@ export function ClientForm({ mode, initial }: { mode: "create" | "edit"; initial
     <form ref={formRef} onSubmit={onSubmit} noValidate className="mt-6 space-y-4" aria-label="Dados do cliente">
       <RequiredNote />
       {error && (
-        <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           <p>{error}</p>
           {outdated && (
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="mt-2 rounded-md border border-red-300 bg-white px-3 py-1 text-sm font-medium text-red-700 hover:bg-red-100"
+              className={buttonClass({ variant: "secondary", size: "sm", className: "mt-2" })}
             >
               Carregar os dados atuais
             </button>

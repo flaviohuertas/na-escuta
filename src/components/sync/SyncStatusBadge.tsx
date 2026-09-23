@@ -13,7 +13,7 @@ const LABEL: Record<SyncStatus, string> = {
 const TONE: Record<SyncStatus, BadgeTone> = {
   offline: "neutral",
   pending: "warning",
-  syncing: "info",
+  syncing: "brand",
   synced: "success",
   conflict: "danger",
   error: "danger",

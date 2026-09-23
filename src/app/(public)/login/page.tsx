@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
-import { Button } from "@/components/ui/Button";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import { inputClass } from "@/components/ui/Field";
 import { LogoMark, Wordmark } from "@/components/ui/Logo";
 import { auth, signIn } from "@/lib/auth/auth.config";
@@ -46,20 +46,20 @@ export default async function LoginPage({
           <Wordmark />
         </h1>
       </div>
-      <div className="w-full max-w-sm rounded-2xl border border-line bg-white p-6 shadow-sm">
+      <div className="w-full max-w-sm rounded-xl border border-line bg-white p-6">
         <p className="text-sm text-slate-500">
           Entre com sua conta. A primeira utilização neste dispositivo exige conexão com a
           internet.
         </p>
 
         {erro === "credenciais" && (
-          <p role="alert" className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
             E-mail ou senha inválidos.
           </p>
         )}
 
         {erro === "bloqueado" && (
-          <p role="alert" className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <p role="alert" className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
             Muitas tentativas seguidas. Tente novamente em alguns minutos.
           </p>
         )}
@@ -91,9 +91,9 @@ export default async function LoginPage({
               className={inputClass}
             />
           </div>
-          <Button type="submit" className="w-full">
+          <SubmitButton pendingLabel="Entrando…" className="w-full">
             Entrar
-          </Button>
+          </SubmitButton>
         </form>
 
         <p className="mt-4 text-xs text-slate-400">

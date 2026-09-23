@@ -6,6 +6,8 @@ import { compactSelectClass, inputClass } from "@/components/ui/Field";
 import { COMPANY_ROLE_LABEL } from "@/lib/domain/event-labels";
 import { AddMemberSchema } from "@/lib/domain/team.schema";
 import { callApi } from "./api";
+import { buttonClass } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 
 export interface TeamRow {
   membershipId: string;
@@ -126,12 +128,12 @@ export function TeamManager({ members, assignableRoles }: { members: TeamRow[]; 
     <div className="mt-6 space-y-8">
       <div aria-live="polite" className="space-y-3">
         {error && (
-          <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
           </p>
         )}
         {notice && !error && (
-          <p role="status" className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          <p role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
             {notice}
           </p>
         )}
@@ -148,14 +150,14 @@ export function TeamManager({ members, assignableRoles }: { members: TeamRow[]; 
               <button
                 type="button"
                 onClick={() => void copy(temp.password)}
-                className="rounded-md border border-amber-400 bg-white px-3 py-1.5 text-sm hover:bg-amber-100"
+                className={buttonClass({ variant: "secondary", size: "sm" })}
               >
                 {copied ? "Copiado" : "Copiar"}
               </button>
               <button
                 type="button"
                 onClick={() => setTemp(null)}
-                className="rounded-md border border-amber-400 bg-white px-3 py-1.5 text-sm hover:bg-amber-100"
+                className={buttonClass({ variant: "secondary", size: "sm" })}
               >
                 Já anotei
               </button>
@@ -223,7 +225,7 @@ export function TeamManager({ members, assignableRoles }: { members: TeamRow[]; 
             <button
               type="submit"
               disabled={busy === "add"}
-              className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+              className={buttonClass()}
             >
               {busy === "add" ? "Adicionando…" : "Adicionar"}
             </button>
@@ -239,7 +241,7 @@ export function TeamManager({ members, assignableRoles }: { members: TeamRow[]; 
         <h2 id="team-list" className="text-base font-semibold text-slate-900">
           Equipe
         </h2>
-        <ul className="mt-2 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+        <ul className="mt-2 divide-y divide-slate-200 rounded-xl border border-line bg-white">
           {members.map((row) => {
             const active = row.status === "ACTIVE";
             const rowBusy = busy === row.membershipId;
@@ -254,14 +256,8 @@ export function TeamManager({ members, assignableRoles }: { members: TeamRow[]; 
                     </p>
                     <p className="text-sm text-slate-500">{row.email}</p>
                     <div className="mt-1 flex flex-wrap gap-1">
-                      {!active && (
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">Vínculo encerrado</span>
-                      )}
-                      {active && row.mustChangePassword && (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
-                          Senha provisória pendente
-                        </span>
-                      )}
+                      {!active && <Badge tone="neutral">Vínculo encerrado</Badge>}
+                      {active && row.mustChangePassword && <Badge tone="warning">Senha provisória pendente</Badge>}
                     </div>
                   </div>
 
@@ -281,9 +277,7 @@ export function TeamManager({ members, assignableRoles }: { members: TeamRow[]; 
                         ))}
                       </select>
                     ) : (
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                        {COMPANY_ROLE_LABEL[row.role] ?? row.role}
-                      </span>
+                      <Badge tone="neutral">{COMPANY_ROLE_LABEL[row.role] ?? row.role}</Badge>
                     )}
 
                     {row.canModify && active && !isConfirming && (
@@ -293,7 +287,7 @@ export function TeamManager({ members, assignableRoles }: { members: TeamRow[]; 
                           disabled={rowBusy}
                           onClick={() => setConfirming({ id: row.membershipId, kind: "toggle-account" })}
                           aria-label={row.isActive ? `Desativar a conta de ${row.name}` : `Reativar a conta de ${row.name}`}
-                          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                          className={buttonClass({ variant: "secondary", size: "sm" })}
                         >
                           {row.isActive ? "Desativar conta" : "Reativar conta"}
                         </button>
@@ -302,7 +296,7 @@ export function TeamManager({ members, assignableRoles }: { members: TeamRow[]; 
                           disabled={rowBusy}
                           onClick={() => setConfirming({ id: row.membershipId, kind: "reset" })}
                           aria-label={`Redefinir a senha de ${row.name}`}
-                          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                          className={buttonClass({ variant: "secondary", size: "sm" })}
                         >
                           Redefinir senha
                         </button>
@@ -311,7 +305,7 @@ export function TeamManager({ members, assignableRoles }: { members: TeamRow[]; 
                           disabled={rowBusy}
                           onClick={() => setConfirming({ id: row.membershipId, kind: "revoke" })}
                           aria-label={`Encerrar o vínculo de ${row.name}`}
-                          className="rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 disabled:opacity-60"
+                          className={buttonClass({ variant: "ghost-danger", size: "sm" })}
                         >
                           Encerrar vínculo
                         </button>
@@ -324,7 +318,7 @@ export function TeamManager({ members, assignableRoles }: { members: TeamRow[]; 
                         disabled={rowBusy}
                         onClick={() => void onChange(row, { status: "ACTIVE" }, "Vínculo reativado. Os acessos a eventos não voltam sozinhos: dê acesso de novo onde for preciso.")}
                         aria-label={`Reativar o vínculo de ${row.name}`}
-                        className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                        className={buttonClass({ variant: "secondary", size: "sm" })}
                       >
                         Reativar
                       </button>
@@ -333,7 +327,7 @@ export function TeamManager({ members, assignableRoles }: { members: TeamRow[]; 
                 </div>
 
                 {isConfirming && (
-                  <div className="mt-3 rounded-md bg-slate-50 p-3 text-sm text-slate-800">
+                  <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-800">
                     {confirming!.kind === "revoke" ? (
                       <p>
                         Encerrar o vínculo de <strong>{row.name}</strong>? Ela deixa de entrar na empresa e{" "}
@@ -353,7 +347,7 @@ export function TeamManager({ members, assignableRoles }: { members: TeamRow[]; 
                       <p>
                         Redefinir a senha de <strong>{row.name}</strong>? A senha atual deixa de valer, ela sai de todos os
                         aparelhos em que estiver conectada e precisará criar outra no próximo acesso. Os dados já
-                        baixados num aparelho perdido continuam lá — para que ele se limpe assim que se conectar,
+                        baixados num aparelho perdido continuam lá. Para que ele se limpe assim que se conectar,
                         encerre o vínculo.
                       </p>
                     )}
@@ -367,14 +361,14 @@ export function TeamManager({ members, assignableRoles }: { members: TeamRow[]; 
                               ? void onChange(row, { isActive: !row.isActive }, row.isActive ? "Conta desativada." : "Conta reativada.")
                               : void onResetPassword(row)
                         }
-                        className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700"
+                        className={buttonClass({ size: "sm" })}
                       >
                         Confirmar
                       </button>
                       <button
                         type="button"
                         onClick={() => setConfirming(null)}
-                        className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100"
+                        className={buttonClass({ variant: "secondary", size: "sm" })}
                       >
                         Cancelar
                       </button>

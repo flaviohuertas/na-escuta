@@ -5,6 +5,9 @@ import { StageBadge, crmErrorView } from "@/components/crm/CrmParts";
 import { requireSession } from "@/lib/auth/require-session";
 import { formatBRL, formatDocument } from "@/lib/domain/crm";
 import { getClient } from "@/server/crm/client.service";
+import { buttonClass } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 /** O cliente: edição, arquivar/reativar e as oportunidades dele. Ao vivo; sem cache do Service Worker. */
 export default async function ClientPage({ params }: { params: Promise<{ clientId: string }> }) {
@@ -21,13 +24,10 @@ export default async function ClientPage({ params }: { params: Promise<{ clientI
   const archived = client.archivedAt !== null;
 
   return (
-    <div className="mx-auto max-w-xl">
-      <AppLink href="/comercial/clientes" className="text-sm text-slate-600 hover:text-slate-900">
-        ← Clientes
-      </AppLink>
-      <h1 className="mt-2 text-2xl font-semibold text-slate-900">{client.name}</h1>
+    <div className="max-w-xl">
+      <PageHeader back={{ href: "/comercial/clientes", label: "Clientes" }} title={client.name} />
       {archived && (
-        <p role="status" className="mt-2 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">
+        <p role="status" className="mt-2 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700">
           Cliente arquivado. Reative-o para editar o cadastro ou abrir novas oportunidades.
         </p>
       )}
@@ -77,20 +77,22 @@ export default async function ClientPage({ params }: { params: Promise<{ clientI
             Oportunidades
           </h2>
           {!archived && (
-            <AppLink href={`/comercial/oportunidades/nova?clienteId=${client.id}`} className="text-sm font-medium text-brand-700 hover:underline">
+            <AppLink href={`/comercial/oportunidades/nova?clienteId=${client.id}`} className={buttonClass({ variant: "secondary", size: "sm" })}>
               Nova oportunidade
             </AppLink>
           )}
         </div>
         {opportunities.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">Nenhuma oportunidade com este cliente ainda.</p>
+          <div className="mt-2">
+            <EmptyState>Nenhuma oportunidade com este cliente ainda.</EmptyState>
+          </div>
         ) : (
           <ul className="mt-2 space-y-2">
             {opportunities.map((opportunity) => (
               <li key={opportunity.id}>
                 <AppLink
                   href={`/comercial/oportunidades/${opportunity.id}`}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:border-brand-300"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-white px-3 py-2 text-sm hover:border-brand-300"
                 >
                   <span className="font-medium text-slate-900">{opportunity.title}</span>
                   <span className="flex items-center gap-2">

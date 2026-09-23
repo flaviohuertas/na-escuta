@@ -18,11 +18,26 @@ function formatDateRange(start: string, end: string): string {
   return `${fmt.format(new Date(start))} – ${fmt.format(new Date(end))}`;
 }
 
+/** O que o servidor diz do evento (nome, datas, local), para a tela antes da preparação. */
+export interface EventSummary {
+  name: string;
+  startDate: string;
+  endDate: string;
+  location: string | null;
+}
+
+function describe(event: { startDate: string; endDate: string; location?: string | null }): string {
+  return `${formatDateRange(event.startDate, event.endDate)}${event.location ? ` · ${event.location}` : ""}`;
+}
+
+const BACK = { href: "/eventos", label: "Eventos" };
+
 /**
  * Lê tudo do IndexedDB local — nenhuma dependência de servidor. Uma vez
- * preparado, este evento abre e recarrega normalmente sem conexão.
+ * preparado, este evento abre e recarrega normalmente sem conexão. `summary` só dá nome à tela
+ * enquanto o evento ainda não está no aparelho.
  */
-export function EventWorkspace({ eventId }: { eventId: string }) {
+export function EventWorkspace({ eventId, summary = null }: { eventId: string; summary?: EventSummary | null }) {
   // `useLiveQuery` devolve `undefined` enquanto carrega, mas `events.get()` de um id
   // ausente também resolve `undefined` — sem normalizar para `null`, um evento ainda
   // não preparado ficaria em "Carregando…" para sempre e o botão de preparar nunca
@@ -73,11 +88,12 @@ export function EventWorkspace({ eventId }: { eventId: string }) {
   const showPrepareButton = !event || !isPrepared;
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="max-w-3xl">
       {revoked ? null : event ? (
         <PageHeader
+          back={BACK}
           title={event.name}
-          description={`${formatDateRange(event.startDate, event.endDate)}${event.location ? ` · ${event.location}` : ""}`}
+          description={describe(event)}
           actions={
             !isPrepared ? (
               <Badge tone="warning">Preparação incompleta</Badge>
@@ -93,9 +109,15 @@ export function EventWorkspace({ eventId }: { eventId: string }) {
       ) : (
         <div className="max-w-xl">
           <PageHeader
-            title="Evento ainda não preparado"
-            description="Este evento ainda não foi baixado para uso offline neste dispositivo. Prepare-o agora enquanto há conexão — depois disso, ele abre e funciona normalmente sem internet."
+            back={BACK}
+            title={summary?.name ?? "Evento ainda não preparado"}
+            description={summary ? describe(summary) : undefined}
+            actions={summary ? <Badge tone="warning">Não preparado</Badge> : undefined}
           />
+          <p className="mt-4 text-sm text-slate-600">
+            Para usar este evento neste aparelho, baixe os dados dele agora, enquanto há conexão. Depois
+            disso ele abre e funciona sem internet.
+          </p>
         </div>
       )}
 
@@ -113,7 +135,7 @@ export function EventWorkspace({ eventId }: { eventId: string }) {
         <div className="mt-4 space-y-2">
           <p className="text-sm text-slate-600">
             Os dados deste evento já estão no aparelho, mas as telas ainda não foram guardadas no
-            navegador — sem internet, o app pode não abrir. Guarde-as agora, enquanto há conexão.
+            navegador, e sem internet o app pode não abrir. Guarde-as agora, enquanto há conexão.
           </p>
           <CacheRoutesButton eventId={eventId} onDone={() => setRecheck((n) => n + 1)} />
         </div>

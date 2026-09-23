@@ -5,6 +5,9 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { getDb } from "@/lib/db/dexie/db";
 import type { LocalConflict } from "@/lib/db/dexie/schema";
 import { applyConflictResolution } from "@/lib/sync/conflict-resolution";
+import { buttonClass } from "@/components/ui/Button";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 function formatDateTime(iso: string): string {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -68,7 +71,7 @@ export function ConflictsScreen() {
         // resultado que o servidor tem e avisa, em vez de deixar o conflito preso.
         await applyConflictResolution(getDb(), conflict, body.entity);
         setNotice(
-          "Este conflito já tinha sido resolvido em outro dispositivo. A tela foi atualizada com o resultado que está no servidor — a sua escolha aqui não foi aplicada."
+          "Este conflito já tinha sido resolvido em outro dispositivo. A tela foi atualizada com o resultado que está no servidor, e a sua escolha aqui não foi aplicada."
         );
         return;
       }
@@ -86,11 +89,8 @@ export function ConflictsScreen() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="text-xl font-semibold text-slate-900">Conflitos pendentes</h1>
-      <p className="mt-1 text-sm text-slate-500">
-        Isto exige conexão — a resolução é aplicada e auditada no servidor.
-      </p>
+    <div className="max-w-2xl">
+      <PageHeader title="Conflitos pendentes" description="Isto exige conexão: a resolução é aplicada e auditada no servidor." />
 
       {error && (
         <p role="alert" className="mt-2 text-sm text-status-error">
@@ -103,10 +103,16 @@ export function ConflictsScreen() {
         </p>
       )}
 
-      {conflicts.length === 0 && <p className="mt-4 text-sm text-slate-500">Nenhum conflito pendente.</p>}
+      {conflicts.length === 0 && (
+        <div className="mt-4">
+          <EmptyState hint="Quando duas pessoas mudam o mesmo dado sem conexão, a escolha de qual versão fica aparece aqui.">
+            Nenhum conflito pendente.
+          </EmptyState>
+        </div>
+      )}
       <ul className="mt-4 space-y-3">
         {conflicts.map((conflict) => (
-          <li key={conflict.id} className="rounded-lg border border-status-conflict/40 bg-red-50 p-4">
+          <li key={conflict.id} className="rounded-xl border border-status-conflict/40 bg-red-50 p-4">
             <p className="text-sm font-medium text-slate-900">
               {conflict.entityType} · detectado em {formatDateTime(conflict.detectedAt)}
             </p>
@@ -120,7 +126,7 @@ export function ConflictsScreen() {
                 type="button"
                 disabled={resolvingId === conflict.id}
                 onClick={() => void resolve(conflict, "KEEP_SERVER")}
-                className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50"
+                className={buttonClass({ variant: "secondary", size: "sm" })}
               >
                 Manter versão do servidor
               </button>
@@ -128,7 +134,7 @@ export function ConflictsScreen() {
                 type="button"
                 disabled={resolvingId === conflict.id}
                 onClick={() => void resolve(conflict, "KEEP_CLIENT")}
-                className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+                className={buttonClass({ size: "sm" })}
               >
                 Manter minha versão (deste dispositivo)
               </button>

@@ -23,7 +23,7 @@ const STATUS_LABEL: Record<LocalTask["status"], string> = {
 
 const STATUS_TONE: Record<LocalTask["status"], BadgeTone> = {
   TODO: "neutral",
-  IN_PROGRESS: "info",
+  IN_PROGRESS: "brand",
   DONE: "success",
   BLOCKED: "danger",
 };
@@ -183,7 +183,7 @@ export function TasksScreen({
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="max-w-2xl">
       <PageHeader title="Tarefas" back={{ href: `/eventos/${eventId}`, label: "Voltar ao evento" }} />
 
       <Card className="mt-4">

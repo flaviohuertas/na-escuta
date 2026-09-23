@@ -1,14 +1,15 @@
 import type { HTMLAttributes } from "react";
 
-export type BadgeTone = "neutral" | "success" | "warning" | "danger" | "info" | "brand";
+export type BadgeTone = "neutral" | "success" | "warning" | "danger" | "brand";
 
-// Os mesmos pares de cor que as telas já usavam para situação (estourou, dentro do previsto…).
+// Cor só quando ela diz algo: desfecho bom (verde-mar), atenção (âmbar), desfecho ruim (vermelho) e o que
+// está em curso agora (marca: tarefa em andamento, sincronizando, proposta enviada esperando o cliente).
+// Etapa do funil em andamento, rascunho e papel da pessoa são `neutral`. Não há azul: um acento só.
 const TONE: Record<BadgeTone, string> = {
   neutral: "bg-slate-100 text-slate-700",
   success: "bg-emerald-100 text-emerald-900",
   warning: "bg-amber-100 text-amber-900",
   danger: "bg-red-100 text-red-800",
-  info: "bg-sky-100 text-sky-900",
   brand: "bg-brand-100 text-brand-800",
 };
 

@@ -57,6 +57,22 @@ describe("EventWorkspace", () => {
     expect(screen.queryByRole("link", { name: "Tarefas" })).not.toBeInTheDocument();
   });
 
+  it("antes da preparação, com o resumo do servidor, a tela diz QUAL evento é e leva de volta à lista", async () => {
+    render(
+      <EventWorkspace
+        eventId={eventId}
+        summary={{ name: "Festival de Teste", startDate: "2026-10-01T12:00:00.000Z", endDate: "2026-10-02T12:00:00.000Z", location: "Parque" }}
+      />
+    );
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Festival de Teste" })).toBeInTheDocument();
+    expect(screen.getByText(/01\/10\/2026.*02\/10\/2026 · Parque/)).toBeInTheDocument();
+    expect(screen.getByText("Não preparado")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Eventos" })).toHaveAttribute("href", "/eventos");
+    expect(screen.getByRole("button", { name: PREPARE_BUTTON })).toBeInTheDocument();
+    expect(screen.queryByText("Evento ainda não preparado")).not.toBeInTheDocument();
+  });
+
   it("evento baixado mas com preparação incompleta avisa e mantém o botão de preparar", async () => {
     await putEvent();
     render(<EventWorkspace eventId={eventId} />);

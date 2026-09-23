@@ -4,6 +4,8 @@ import { requireSession } from "@/lib/auth/require-session";
 import { canReviewProposals } from "@/lib/domain/permissions";
 import { listMyProposals, listProposalsForReview } from "@/server/approvals/approval.service";
 import { listAccessibleEvents } from "@/server/events/accessible-events";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Badge } from "@/components/ui/Badge";
 
 /**
  * Aprovações: o que espera a SUA decisão (se você gerencia algum evento) e as propostas que VOCÊ fez.
@@ -22,18 +24,20 @@ export default async function ApprovalsPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-semibold text-slate-900">Aprovações</h1>
-      <p className="mt-1 text-sm text-slate-500">
-        A equipe de campo propõe correções nos dados do evento; o gestor do evento aprova ou rejeita.
-      </p>
+    <div className="max-w-3xl">
+      <PageHeader
+        title="Aprovações"
+        description="A equipe de campo propõe correções nos dados do evento; o gestor do evento aprova ou rejeita."
+      />
 
       {review && (
         <section aria-labelledby="to-decide" className="mt-6">
           <h2 id="to-decide" className="text-lg font-semibold text-slate-900">
             Para decidir
             {review.pending.length > 0 && (
-              <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">{review.pending.length}</span>
+              <Badge tone="warning" className="ml-2 align-middle">
+                {review.pending.length}
+              </Badge>
             )}
           </h2>
           <ApprovalInbox pending={review.pending} decided={review.decided} />

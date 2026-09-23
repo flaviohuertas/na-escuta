@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/auth/require-session";
 import { formatBRL } from "@/lib/domain/crm";
 import { PROPOSAL_STATUSES, PROPOSAL_STATUS_LABEL, formatDateOnlyBR, type ProposalStatusName } from "@/lib/domain/proposal";
 import { listProposals } from "@/server/crm/proposal.service";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 const FILTERS: Array<{ value: ProposalStatusName | "todas"; label: string }> = [
   { value: "SENT", label: "Enviadas" },
@@ -32,12 +33,12 @@ export default async function ProposalsPage({ searchParams }: { searchParams: Pr
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <AppLink href="/comercial" className="text-sm text-slate-600 hover:text-slate-900">
-        ← Funil
-      </AppLink>
-      <h1 className="mt-2 text-2xl font-semibold text-slate-900">Propostas</h1>
-      <p className="mt-1 text-sm text-slate-500">As enviadas aparecem por validade: as que vencem primeiro ficam no topo.</p>
+    <div className="max-w-4xl">
+      <PageHeader
+        back={{ href: "/comercial", label: "Funil" }}
+        title="Propostas"
+        description="As enviadas aparecem por validade: as que vencem primeiro ficam no topo."
+      />
 
       <nav aria-label="Filtrar por situação" className="mt-4 flex flex-wrap gap-2 text-sm">
         {FILTERS.map((filter) => (
@@ -45,7 +46,7 @@ export default async function ProposalsPage({ searchParams }: { searchParams: Pr
             key={filter.value}
             href={`/comercial/propostas?situacao=${filter.value}`}
             aria-current={active === filter.value ? "page" : undefined}
-            className={`rounded-full border px-3 py-1 ${
+            className={`inline-flex min-h-11 items-center rounded-full border px-4 transition-colors sm:min-h-9 ${
               active === filter.value ? "border-brand-600 bg-brand-600 text-white" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
             }`}
           >
@@ -64,7 +65,7 @@ export default async function ProposalsPage({ searchParams }: { searchParams: Pr
             <li key={row.id}>
               <AppLink
                 href={`/comercial/propostas/${row.id}`}
-                className="block rounded-lg border border-slate-200 bg-white p-4 shadow-sm hover:border-brand-300 hover:shadow"
+                className="block rounded-xl border border-line bg-white p-4 transition-colors hover:border-brand-300"
                 data-testid="proposal-overview-row"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">

@@ -21,7 +21,7 @@ export function ChecklistDetailFromQuery({
 
   if (!checklistId) {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="max-w-2xl">
         <PageHeader
           title="Checklist"
           description="Nenhum checklist foi indicado."

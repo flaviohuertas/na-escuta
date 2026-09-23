@@ -18,7 +18,7 @@ const body = Instrument_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: "Na Escuta — Gestão de Eventos",
+    default: "Na Escuta · Gestão de eventos",
     template: "%s · Na Escuta",
   },
   description:

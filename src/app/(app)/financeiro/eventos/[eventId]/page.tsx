@@ -8,6 +8,8 @@ import { EVENT_STATUS_LABEL } from "@/lib/domain/event-labels";
 import type { EventStatus } from "@/lib/domain/event.schema";
 import { getEventFinance } from "@/server/finance/finance.service";
 import { listSupplierOptions } from "@/server/suppliers/supplier.service";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { NoValue } from "@/components/ui/Stat";
 
 /**
  * O financeiro de um evento: o resumo (receita, previsto, lançado, margens), a comparação por
@@ -30,24 +32,25 @@ export default async function EventFinancePage({ params }: { params: Promise<{ e
   const { event, opportunity, expenses, truncated, comparison, revenue, plannedMargin, realizedMargin, history, today } = view;
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <AppLink href="/financeiro" className="text-sm text-slate-600 hover:text-slate-900">
-        ← Financeiro
-      </AppLink>
-      <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">{event.name}</h1>
-          <p className="mt-1 text-sm text-slate-500">
+    <div className="max-w-4xl">
+      <PageHeader
+        back={{ href: "/financeiro", label: "Financeiro" }}
+        title={event.name}
+        description={
+          <>
             {EVENT_STATUS_LABEL[event.status as EventStatus] ?? event.status} · {formatDateBR(event.startDate)} a {formatDateBR(event.endDate)}
-          </p>
-        </div>
-        {opportunity && (
-          <AppLink href={`/comercial/oportunidades/${opportunity.id}`} className="text-sm font-medium text-brand-700 hover:underline">
-            Oportunidade de origem: {opportunity.title}
-          </AppLink>
-        )}
-      </div>
-      <p className="mt-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            {opportunity && (
+              <>
+                {" · "}
+                <AppLink href={`/comercial/oportunidades/${opportunity.id}`} className="font-medium text-brand-700 underline underline-offset-2 hover:text-brand-800">
+                  Oportunidade de origem
+                </AppLink>
+              </>
+            )}
+          </>
+        }
+      />
+      <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
         Confidencial da produtora: só titular e administração veem esta tela. Estes lançamentos nunca vão para o aparelho de campo.
       </p>
 
@@ -72,7 +75,7 @@ export default async function EventFinancePage({ params }: { params: Promise<{ e
           Lançamentos
         </h2>
         {/* Sempre visível: quem lança custo lança vários em sequência, e o aviso "Lançamento salvo." tem de aparecer. */}
-        <div className="mt-2 rounded-lg border border-slate-200 bg-white p-4" data-testid="new-expense">
+        <div className="mt-2 rounded-xl border border-line bg-white p-4" data-testid="new-expense">
           <h3 className="text-sm font-semibold text-slate-800">Novo lançamento</h3>
           <ExpenseForm mode="create" eventId={event.id} defaultDate={today} suppliers={suppliers} />
         </div>
@@ -89,12 +92,12 @@ export default async function EventFinancePage({ params }: { params: Promise<{ e
           <h2 id="history" className="text-lg font-semibold text-slate-900">
             Histórico
           </h2>
-          <ul className="mt-2 divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white text-sm">
+          <ul className="mt-2 divide-y divide-slate-100 rounded-xl border border-line bg-white text-sm">
             {history.map((entry) => (
               <li key={entry.id} className="flex flex-wrap items-baseline justify-between gap-2 px-3 py-2" data-testid="history-entry">
                 <span className="text-slate-800">{entry.text}</span>
                 <span className="text-xs text-slate-500">
-                  {entry.actorName ?? "—"} · {formatDateTimeBR(entry.at.toISOString())}
+                  {entry.actorName ?? <NoValue label="sem autor" />} · {formatDateTimeBR(entry.at.toISOString())}
                 </span>
               </li>
             ))}

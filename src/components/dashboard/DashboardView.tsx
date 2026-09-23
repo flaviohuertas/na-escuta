@@ -1,4 +1,10 @@
 import { AppLink } from "@/components/ui/AppLink";
+import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { cardClass } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Icon } from "@/components/ui/Icon";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Stat, type StatTone } from "@/components/ui/Stat";
 import {
   APP_TIME_ZONE,
   groupAgendaByDay,
@@ -35,10 +41,10 @@ const HEALTH_LABEL: Record<HealthLevel, string> = {
   CRITICAL: "Crítico",
 };
 
-const HEALTH_STYLE: Record<HealthLevel, string> = {
-  OK: "bg-emerald-100 text-emerald-800",
-  ATTENTION: "bg-amber-100 text-amber-800",
-  CRITICAL: "bg-red-100 text-red-800",
+const HEALTH_TONE: Record<HealthLevel, BadgeTone> = {
+  OK: "success",
+  ATTENTION: "warning",
+  CRITICAL: "danger",
 };
 
 /** Evento de um dia só mostra a data uma vez (no fuso do app, não no do servidor). */
@@ -71,14 +77,37 @@ function percent(ratio: number | null): string {
   return ratio === null ? "—" : `${Math.round(ratio * 100)}%`;
 }
 
-function KpiCard({ label, value, tone = "neutral" }: { label: string; value: number; tone?: "neutral" | "warn" | "danger" }) {
-  const valueColor =
-    tone === "danger" && value > 0 ? "text-red-700" : tone === "warn" && value > 0 ? "text-amber-700" : "text-slate-900";
+/**
+ * Os números do topo. Os dois de contexto ficam sempre; os três de alerta só aparecem quando há o que
+ * resolver (e aí em destaque, na cor do alerta). Zerados, viram uma linha só: o maior elemento da tela
+ * não pode ser um "0".
+ */
+function Kpis({ kpis }: { kpis: Portfolio["kpis"] }) {
+  const alerts = (
+    [
+      { label: "Precisam de atenção", value: kpis.eventsNeedingAttention, tone: "warning" },
+      { label: "Tarefas atrasadas", value: kpis.tasksOverdue, tone: "warning" },
+      { label: "Ocorrências críticas", value: kpis.occurrencesOpenCritical, tone: "danger" },
+    ] satisfies Array<{ label: string; value: number; tone: StatTone }>
+  ).filter((alert) => alert.value > 0);
+
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-      <p className={`mt-1 text-3xl font-semibold ${valueColor}`}>{value}</p>
-    </div>
+    <dl className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-5">
+      <Stat card size="lg" label="Em andamento" value={kpis.ongoingCount} />
+      <Stat card size="lg" label="Próximos 30 dias" value={kpis.upcomingSoonCount} />
+      {alerts.length === 0 ? (
+        // Dentro de um <dl>, o grupo só pode ter <dt> e <dd> (o ícone vai DENTRO do <dt>, senão o axe acusa).
+        <div className="col-span-2 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-emerald-900 md:col-span-3">
+          <dt className="flex items-center gap-2 font-semibold">
+            <Icon name="check" size={20} />
+            Tudo em dia
+          </dt>
+          <dd className="mt-1 text-sm">Nenhum evento pede atenção, nenhuma tarefa atrasada, nenhuma ocorrência crítica.</dd>
+        </div>
+      ) : (
+        alerts.map((alert) => <Stat key={alert.label} card size="lg" label={alert.label} value={alert.value} tone={alert.tone} />)
+      )}
+    </dl>
   );
 }
 
@@ -88,19 +117,13 @@ function EventCard({ entry }: { entry: PortfolioEntry }) {
     <li>
       <AppLink
         href={`/eventos/${event.id}`}
-        className="block rounded-lg border border-slate-200 bg-white p-4 shadow-sm hover:border-brand-300 hover:shadow"
+        className={cardClass({ interactive: true, className: "block" })}
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="font-medium text-slate-900">{event.name}</h3>
+          <h3 className="font-semibold text-slate-900">{event.name}</h3>
           <div className="flex items-center gap-2">
-            {health && (
-              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${HEALTH_STYLE[health.level]}`}>
-                {HEALTH_LABEL[health.level]}
-              </span>
-            )}
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-              {ROLE_LABEL[entry.role] ?? entry.role}
-            </span>
+            {health && <Badge tone={HEALTH_TONE[health.level]}>{HEALTH_LABEL[health.level]}</Badge>}
+            <Badge tone="neutral">{ROLE_LABEL[entry.role] ?? entry.role}</Badge>
           </div>
         </div>
         <p className="mt-1 text-sm text-slate-500">
@@ -161,9 +184,11 @@ function AgendaSection({ agenda }: { agenda: AgendaItem[] }) {
   const groups = groupAgendaByDay(agenda);
   return (
     <section className="mt-8">
-      <h2 className="text-lg font-semibold text-slate-900">Agenda — próximos 14 dias</h2>
+      <h2 className="text-lg font-semibold text-slate-900">Agenda dos próximos 14 dias</h2>
       {groups.length === 0 ? (
-        <p className="mt-3 text-sm text-slate-500">Nada agendado nos próximos 14 dias.</p>
+        <div className="mt-3">
+          <EmptyState hint="Início e fim de evento e prazo de tarefa aparecem aqui.">Nada agendado nos próximos 14 dias.</EmptyState>
+        </div>
       ) : (
         <div className="mt-3 space-y-4">
           {groups.map((group) => (
@@ -173,7 +198,7 @@ function AgendaSection({ agenda }: { agenda: AgendaItem[] }) {
               >
                 {group.label}
               </h3>
-              <ul className="mt-1 divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
+              <ul className="mt-1 divide-y divide-slate-100 rounded-xl border border-line bg-white">
                 {group.items.map((item) => (
                   <li key={item.key}>
                     <AppLink
@@ -215,25 +240,21 @@ export function DashboardView({
     portfolio.ongoing.length + portfolio.upcoming.length + portfolio.past.length + portfolio.cancelled.length;
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <h1 className="text-2xl font-semibold text-slate-900">Painel</h1>
-      <p className="mt-1 text-sm text-slate-500">
-        Visão geral dos seus eventos, calculada no servidor em {dateFmt.format(generatedAt)} às{" "}
-        {timeFmt.format(generatedAt)}. Sem conexão, esta tela pode mostrar um retrato antigo — para
-        trabalhar offline, abra um evento já preparado.
-      </p>
+    <div className="max-w-5xl">
+      <PageHeader
+        title="Painel"
+        description={`Visão geral dos seus eventos, calculada no servidor em ${dateFmt.format(generatedAt)} às ${timeFmt.format(generatedAt)}. Sem conexão, esta tela pode mostrar um retrato antigo: para trabalhar offline, abra um evento já preparado.`}
+      />
 
       {total === 0 ? (
-        <p className="mt-6 text-slate-500">Você ainda não tem acesso a nenhum evento.</p>
+        <div className="mt-6">
+          <EmptyState hint="Quem gerencia um evento dá o acesso na tela Pessoas do evento.">
+            Você ainda não tem acesso a nenhum evento.
+          </EmptyState>
+        </div>
       ) : (
         <>
-          <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-5">
-            <KpiCard label="Em andamento" value={kpis.ongoingCount} />
-            <KpiCard label="Próximos 30 dias" value={kpis.upcomingSoonCount} />
-            <KpiCard label="Precisam de atenção" value={kpis.eventsNeedingAttention} tone="warn" />
-            <KpiCard label="Tarefas atrasadas" value={kpis.tasksOverdue} tone="warn" />
-            <KpiCard label="Ocorrências críticas" value={kpis.occurrencesOpenCritical} tone="danger" />
-          </div>
+          <Kpis kpis={kpis} />
 
           <AgendaSection agenda={agenda} />
 

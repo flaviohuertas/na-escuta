@@ -10,6 +10,8 @@ import { AppLink } from "@/components/ui/AppLink";
 import { formatDateTimeBR } from "@/lib/domain/approval-format";
 import { fieldLabel, type ProposalView } from "@/lib/domain/approval";
 import { ReviewDecisionSchema } from "@/lib/domain/approval.schema";
+import { buttonClass } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 /**
  * As propostas que esperam a decisão do gestor. A tela só mostra e envia a decisão: o servidor
@@ -52,20 +54,24 @@ export function ApprovalInbox({ pending, decided }: { pending: ProposalView[]; d
   return (
     <div>
       {notice && (
-        <p role="status" className="mt-3 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+        <p role="status" className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
           {notice}
         </p>
       )}
 
       {pending.length === 0 ? (
-        <p className="mt-2 text-sm text-slate-500">Nenhuma proposta esperando decisão.</p>
+        <div className="mt-2">
+          <EmptyState hint="Quando alguém da equipe de campo propuser uma correção num evento que você gerencia, ela aparece aqui.">
+            Nenhuma proposta esperando decisão.
+          </EmptyState>
+        </div>
       ) : (
         <ul className="mt-2 space-y-4">
           {pending.map((proposal) => {
             const blocked = proposal.unreadable || proposal.conflictFields.length > 0;
             const error = errors[proposal.id];
             return (
-              <li key={proposal.id} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm" data-testid="pending-proposal">
+              <li key={proposal.id} className="rounded-xl border border-line bg-white p-4" data-testid="pending-proposal">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <AppLink href={`/eventos/${proposal.eventId}`} className="font-medium text-slate-900 hover:underline">
                     {proposal.eventName}
@@ -78,7 +84,7 @@ export function ApprovalInbox({ pending, decided }: { pending: ProposalView[]; d
                 {proposal.reason && <p className="mt-2 text-sm text-slate-700">Motivo: {proposal.reason}</p>}
 
                 {proposal.unreadable ? (
-                  <p className="mt-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
+                  <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
                     Esta proposta está corrompida e não pode ser aplicada. Só dá para rejeitá-la.
                   </p>
                 ) : (
@@ -86,7 +92,7 @@ export function ApprovalInbox({ pending, decided }: { pending: ProposalView[]; d
                 )}
 
                 {proposal.conflictFields.length > 0 && (
-                  <div role="alert" className="mt-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  <div role="alert" className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
                     <p>
                       O evento mudou depois desta proposta ({proposal.conflictFields.map(fieldLabel).join(", ")}). Não dá para
                       aprovar por cima: rejeite e peça uma nova, ou{" "}
@@ -124,7 +130,7 @@ export function ApprovalInbox({ pending, decided }: { pending: ProposalView[]; d
                     onClick={() => void decide(proposal, "APPROVE")}
                     disabled={blocked || busy !== null}
                     aria-label={`Aprovar a proposta de ${proposal.submittedBy.name} para ${proposal.eventName}`}
-                    className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className={buttonClass()}
                   >
                     {busy === proposal.id ? "Enviando…" : "Aprovar"}
                   </button>
@@ -133,7 +139,7 @@ export function ApprovalInbox({ pending, decided }: { pending: ProposalView[]; d
                     onClick={() => void decide(proposal, "REJECT")}
                     disabled={busy !== null}
                     aria-label={`Rejeitar a proposta de ${proposal.submittedBy.name} para ${proposal.eventName}`}
-                    className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className={buttonClass({ variant: "secondary" })}
                   >
                     Rejeitar
                   </button>
@@ -149,7 +155,7 @@ export function ApprovalInbox({ pending, decided }: { pending: ProposalView[]; d
           <h3 className="text-sm font-medium text-slate-700">Decididas recentemente</h3>
           <ul className="mt-2 space-y-2">
             {decided.map((proposal) => (
-              <li key={proposal.id} className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm" data-testid="decided-proposal">
+              <li key={proposal.id} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm" data-testid="decided-proposal">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-medium text-slate-800">{proposal.eventName}</span>
                   <ProposalStatusBadge status={proposal.status} />

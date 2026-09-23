@@ -3,6 +3,8 @@ import { TeamManager } from "@/components/admin/TeamManager";
 import { requireSession } from "@/lib/auth/require-session";
 import { AdminActionError } from "@/server/errors";
 import { listTeam } from "@/server/team/team.service";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { buttonClass } from "@/components/ui/Button";
 
 /**
  * Renderizada no servidor e FORA do cache do Service Worker: a lista da equipe é informação ao
@@ -17,14 +19,11 @@ export default async function TeamPage() {
   } catch (err) {
     if (err instanceof AdminActionError) {
       return (
-        <div className="mx-auto max-w-3xl">
-          <h1 className="text-2xl font-semibold text-slate-900">Equipe</h1>
-          <div className="mt-4 rounded-md bg-slate-100 px-4 py-3 text-sm text-slate-700">
-            <p>{err.message}</p>
-            <AppLink href="/eventos" className="mt-3 inline-block font-medium text-brand-700 hover:underline">
-              Voltar aos eventos
-            </AppLink>
-          </div>
+        <div className="max-w-3xl">
+          <PageHeader title="Equipe" description={err.message} />
+          <AppLink href="/eventos" className={buttonClass({ variant: "secondary", className: "mt-6" })}>
+            Voltar aos eventos
+          </AppLink>
         </div>
       );
     }
@@ -32,11 +31,11 @@ export default async function TeamPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-semibold text-slate-900">Equipe</h1>
-      <p className="mt-1 text-sm text-slate-500">
-        Quem faz parte da empresa e com qual papel. O acesso a cada evento se dá na tela “Pessoas” do próprio evento.
-      </p>
+    <div className="max-w-3xl">
+      <PageHeader
+        title="Equipe"
+        description="Quem faz parte da empresa e com qual papel. O acesso a cada evento se dá na tela “Pessoas” do próprio evento."
+      />
       <TeamManager
         members={data.members.map((m) => ({
           membershipId: m.membershipId,

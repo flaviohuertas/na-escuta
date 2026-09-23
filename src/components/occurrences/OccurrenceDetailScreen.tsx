@@ -91,7 +91,7 @@ export function OccurrenceDetailScreen({
 
   if (occurrence === null) {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="max-w-2xl">
         <PageHeader title="Ocorrência não encontrada" back={back} />
         <p className="mt-2 text-sm text-slate-600">
           Esta ocorrência não existe neste aparelho. Ela pode ter sido excluída, ou o evento ainda não
@@ -102,7 +102,7 @@ export function OccurrenceDetailScreen({
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="max-w-2xl">
       <PageHeader
         title={occurrence.title}
         back={back}
@@ -142,7 +142,7 @@ export function OccurrenceDetailScreen({
         <h2 className="text-lg text-slate-900">Evidências (fotos e documentos)</h2>
         <p className="mt-1 text-sm text-slate-600">
           Os arquivos ficam neste dispositivo; os metadados (nome, tamanho, checksum) são
-          sincronizados para auditoria — o envio do arquivo em si é um passo futuro.
+          sincronizados para auditoria; o envio do arquivo em si é um passo futuro.
         </p>
 
         <div className="mt-3">

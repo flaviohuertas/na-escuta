@@ -89,7 +89,7 @@ describe("BudgetForm — montar", () => {
 
     await user.clear(screen.getByLabelText("Custo unitário do item 1"));
     await user.type(screen.getByLabelText("Custo unitário do item 1"), "9.000,00");
-    expect(screen.getByTestId("form-margin")).toHaveTextContent(/-R\$\s6\.000,00 \(-50,0%\) — prejuízo/);
+    expect(screen.getByTestId("form-margin")).toHaveTextContent(/-R\$\s6\.000,00 \(-50,0%\), prejuízo/);
   });
 
   it("sem receita de referência não mostra margem", async () => {

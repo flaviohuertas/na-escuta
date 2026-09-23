@@ -393,8 +393,9 @@ describe("SupplierSpendSection", () => {
     expect(screen.getByTestId("spend-realized")).toHaveTextContent(money("5.000,00"));
     expect(screen.getByTestId("supplier-spend")).toHaveTextContent("2 lançamentos");
     expect(screen.getByTestId("spend-planned")).toHaveTextContent(money("6.100,00"));
-    expect(screen.getByRole("link", { name: "Festival de Verão" })).toHaveAttribute("href", "/financeiro/eventos/e-1");
-    expect(screen.getByRole("link", { name: "Festival de Verão (oportunidade)" })).toHaveAttribute("href", "/comercial/oportunidades/o-1/orcamento");
+    // A linha inteira é o link (alvo de 44 px): o nome leva o valor junto.
+    expect(screen.getByRole("link", { name: /^Festival de Verão\s*R\$/ })).toHaveAttribute("href", "/financeiro/eventos/e-1");
+    expect(screen.getByRole("link", { name: /^Festival de Verão \(oportunidade\)\s*R\$/ })).toHaveAttribute("href", "/comercial/oportunidades/o-1/orcamento");
     expect(screen.queryByTestId("spend-over")).not.toBeInTheDocument();
   });
 

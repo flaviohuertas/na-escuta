@@ -38,7 +38,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         />
         <div className="flex min-w-0 flex-1 flex-col">
           <SyncStatusBar />
-          <main className="flex-1 p-4 pb-28 md:p-8">{children}</main>
+          {/* Um só contêiner para todas as telas: cada tela limita a própria largura (`max-w-xl` num
+              formulário, `max-w-4xl` numa lista) SEM se centralizar, então o título começa sempre no
+              mesmo lugar e não pula de uma tela para outra. */}
+          <main className="flex-1 p-4 pb-28 md:p-8">
+            <div className="mx-auto w-full max-w-6xl">{children}</div>
+          </main>
         </div>
       </div>
     </SyncProvider>

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { callApi } from "@/components/admin/api";
 import { STAGE_LABEL, allowedMoves, isOpenStage, type OpportunityStageName } from "@/lib/domain/crm";
 import { StageMoveSchema } from "@/lib/domain/crm.schema";
+import { buttonClass } from "@/components/ui/Button";
 
 /**
  * Os botões de mover a oportunidade no funil — só os movimentos que o servidor permite
@@ -58,6 +59,10 @@ export function StageActions({
 
   if (moves.length === 0) return null;
 
+  // Ganho e Perdido são desfecho: levam a cor dele, na mesma forma e tamanho do botão `sm` do sistema.
+  const OUTCOME_SHAPE =
+    "inline-flex h-11 items-center justify-center rounded-xl border-[1.5px] bg-transparent px-4 text-base font-semibold transition-colors disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-500 sm:h-9 sm:px-3 sm:text-sm";
+
   return (
     <div className="mt-3">
       <p className="text-sm font-medium text-slate-700">{reopening ? "Reabrir" : "Mover para"}</p>
@@ -72,13 +77,13 @@ export function StageActions({
               disabled={busy}
               aria-label={`${reopening ? "Reabrir como" : "Mover para"} ${STAGE_LABEL[target]}`}
               aria-expanded={isLost ? losing : undefined}
-              className={`rounded-md border px-3 py-1.5 text-sm font-medium disabled:opacity-60 ${
+              className={
                 target === "WON"
-                  ? "border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
+                  ? `${OUTCOME_SHAPE} border-emerald-700 text-emerald-900 hover:bg-emerald-50`
                   : isLost
-                    ? "border-red-300 bg-red-50 text-red-900 hover:bg-red-100"
-                    : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-              }`}
+                    ? `${OUTCOME_SHAPE} border-status-error text-red-800 hover:bg-red-50`
+                    : buttonClass({ variant: "secondary", size: "sm" })
+              }
             >
               {STAGE_LABEL[target]}
             </button>
@@ -87,7 +92,7 @@ export function StageActions({
       </div>
 
       {losing && (
-        <div className="mt-3 rounded-md bg-slate-50 p-3">
+        <div className="mt-3 rounded-lg bg-slate-50 p-3">
           <label htmlFor="lost-reason" className="block text-sm font-medium text-slate-700">
             Por que a oportunidade foi perdida?
           </label>
@@ -103,7 +108,7 @@ export function StageActions({
             type="button"
             onClick={() => void move("LOST")}
             disabled={busy}
-            className="mt-2 rounded-md bg-red-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-60"
+            className={buttonClass({ variant: "danger", size: "sm", className: "mt-2" })}
           >
             Confirmar perda
           </button>
@@ -111,13 +116,13 @@ export function StageActions({
       )}
 
       {error && (
-        <div role="alert" className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           <p>{error}</p>
           {outdated && (
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="mt-2 rounded-md border border-red-300 bg-white px-3 py-1 text-sm font-medium text-red-700 hover:bg-red-100"
+              className={buttonClass({ variant: "secondary", size: "sm", className: "mt-2" })}
             >
               Carregar a etapa atual
             </button>

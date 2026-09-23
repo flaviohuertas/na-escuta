@@ -38,7 +38,9 @@ export function PageHeader({
           <h1 className="text-2xl text-slate-900 [overflow-wrap:anywhere]">{title}</h1>
           {description && <p className="mt-1 text-sm text-slate-600">{description}</p>}
         </div>
-        {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+        {/* Sem `shrink-0`: no celular a linha das ações encolhe até a largura da tela e quebra os botões
+            INTEIROS para baixo (com `shrink-0` ela ficava da largura de todos juntos e vazava para o lado). */}
+        {actions && <div className="flex max-w-full flex-wrap items-center gap-2">{actions}</div>}
       </div>
     </header>
   );

@@ -3,6 +3,7 @@ import { crmErrorView } from "@/components/crm/CrmParts";
 import { ProposalForm } from "@/components/crm/ProposalForm";
 import { requireSession } from "@/lib/auth/require-session";
 import { prepareNewProposal } from "@/server/crm/proposal.service";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 /**
  * Nova proposta (um rascunho) para a oportunidade — em branco ou partindo de uma versão anterior
@@ -34,22 +35,24 @@ export default async function NewProposalPage({
   const back = `/comercial/oportunidades/${opportunity.id}`;
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <AppLink href={back} className="text-sm text-slate-600 hover:text-slate-900">
-        ← {opportunity.title}
-      </AppLink>
-      <h1 className="mt-2 text-2xl font-semibold text-slate-900">Nova proposta</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        Para {client.name}
-        {copiedFrom && <span> · partindo da versão {copiedFrom.number}</span>}
-      </p>
+    <div className="max-w-3xl">
+      <PageHeader
+        back={{ href: back, label: opportunity.title }}
+        title="Nova proposta"
+        description={
+          <>
+            Para {client.name}
+            {copiedFrom && <span> · partindo da versão {copiedFrom.number}</span>}
+          </>
+        }
+      />
 
       {blockedReason ? (
-        <p role="status" className="mt-4 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">
+        <p role="status" className="mt-4 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700">
           {blockedReason}
         </p>
       ) : existingDraft ? (
-        <p role="status" className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        <p role="status" className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
           Já existe um rascunho (v{existingDraft.number}) desta oportunidade.{" "}
           <AppLink href={`/comercial/propostas/${existingDraft.id}`} className="font-medium underline">
             Continue por ele

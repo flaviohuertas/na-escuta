@@ -98,7 +98,7 @@ export function ProposeChangeForm({ initial }: { initial: ProposeFormInitial }) 
   return (
     <form ref={formRef} onSubmit={onSubmit} noValidate className="mt-6 space-y-4" aria-label="Proposta de alteração do evento">
       {error && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </p>
       )}

@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db/dexie/db";
 import { prepareEventForOffline, type PrepareProgress, type PrepareResult } from "@/lib/sync/bootstrap";
 import { requestPersistentStorage } from "@/lib/storage/persistence";
 import { warmEventRoutes } from "@/lib/offline/warm-routes";
+import { buttonClass } from "@/components/ui/Button";
 
 export function PrepareOfflineButton({ eventId, onDone }: { eventId: string; onDone?: () => void }) {
   const [progress, setProgress] = useState<PrepareProgress | null>(null);
@@ -43,7 +44,7 @@ export function PrepareOfflineButton({ eventId, onDone }: { eventId: string; onD
         type="button"
         onClick={() => void handlePrepare()}
         disabled={isRunning}
-        className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+        className={buttonClass()}
       >
         {isRunning ? "Preparando…" : "Preparar evento para uso offline"}
       </button>
@@ -80,7 +81,7 @@ export function PrepareOfflineButton({ eventId, onDone }: { eventId: string; onD
       )}
       {result?.ok && (
         <p className="mt-2 text-sm text-status-synced">
-          Evento preparado com sucesso — já pode ser usado sem internet.
+          Evento preparado. Já pode ser usado sem internet.
         </p>
       )}
       {error && (

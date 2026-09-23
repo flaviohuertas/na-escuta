@@ -5,6 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import type { KeptOnDevice } from "@/lib/sync/access";
 import { downloadEncryptedExport } from "@/lib/sync/export-download";
 import type { EncryptedExport } from "@/lib/sync/export-pending";
+import { buttonClass } from "@/components/ui/Button";
 
 type Step = "idle" | "export" | "exporting" | "confirm-discard" | "discarding";
 
@@ -85,13 +86,13 @@ export function RevokedDataPanel(props: RevokedDataPanelProps) {
   const busy = step === "exporting" || step === "discarding";
 
   return (
-    <div role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+    <div role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
       <p className="font-medium">{title}</p>
       <p className="mt-1">{intro}</p>
 
       {kept === undefined ? null : hasKept ? (
         <div className="mt-3">
-          <p>Ficou aqui só o que ainda não chegou ao servidor — e não será enviado, porque o acesso foi retirado:</p>
+          <p>Ficou aqui só o que ainda não chegou ao servidor, e isso não será enviado, porque o acesso foi retirado:</p>
           <ul className="mt-1 list-disc pl-5">
             {kept.unsentChanges > 0 && (
               <li>
@@ -127,7 +128,7 @@ export function RevokedDataPanel(props: RevokedDataPanelProps) {
             type="password"
             value={passphrase}
             onChange={(e) => setPassphrase(e.target.value)}
-            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
             autoFocus
           />
           <p className="text-xs">O arquivo leva só as alterações, não as fotos e arquivos.</p>
@@ -136,7 +137,7 @@ export function RevokedDataPanel(props: RevokedDataPanelProps) {
               type="button"
               onClick={() => void handleExport()}
               disabled={busy}
-              className="rounded-md bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+              className={buttonClass({ size: "sm" })}
             >
               {step === "exporting" ? "Exportando…" : "Exportar arquivo cifrado"}
             </button>
@@ -144,18 +145,18 @@ export function RevokedDataPanel(props: RevokedDataPanelProps) {
               type="button"
               onClick={() => setStep("idle")}
               disabled={busy}
-              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+              className={buttonClass({ variant: "secondary", size: "sm" })}
             >
               Voltar
             </button>
           </div>
         </div>
       ) : step === "confirm-discard" || step === "discarding" ? (
-        <div className="mt-3 rounded-md bg-white p-3 text-slate-900">
+        <div className="mt-3 rounded-lg bg-white p-3 text-slate-900">
           <p>
             {hasKept ? (
               <>
-                Remover apaga <strong>agora e para sempre</strong> o que ficou neste aparelho ({keptSummary}) — nada
+                Remover apaga <strong>agora e para sempre</strong> o que ficou neste aparelho ({keptSummary}): nada
                 disso existe em outro lugar. Não dá para desfazer. Exporte antes se quiser guardar as alterações.
               </>
             ) : (
@@ -167,7 +168,7 @@ export function RevokedDataPanel(props: RevokedDataPanelProps) {
               type="button"
               onClick={() => void handleDiscard()}
               disabled={busy}
-              className="rounded-md bg-red-700 px-3 py-1.5 font-medium text-white hover:bg-red-800 disabled:opacity-50"
+              className={buttonClass({ variant: "danger", size: "sm" })}
             >
               {step === "discarding" ? "Removendo…" : hasKept ? "Sim, remover do aparelho" : "Dispensar aviso"}
             </button>
@@ -175,7 +176,7 @@ export function RevokedDataPanel(props: RevokedDataPanelProps) {
               type="button"
               onClick={() => setStep("idle")}
               disabled={busy}
-              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+              className={buttonClass({ variant: "secondary", size: "sm" })}
             >
               Cancelar
             </button>
@@ -188,7 +189,7 @@ export function RevokedDataPanel(props: RevokedDataPanelProps) {
               <button
                 type="button"
                 onClick={() => setStep("export")}
-                className="rounded-md border border-red-300 bg-white px-3 py-1.5 font-medium text-red-900 hover:bg-red-100"
+                className={buttonClass({ variant: "ghost-danger", size: "sm" })}
               >
                 Exportar alterações não enviadas
               </button>
@@ -196,7 +197,7 @@ export function RevokedDataPanel(props: RevokedDataPanelProps) {
             <button
               type="button"
               onClick={() => (hasKept ? setStep("confirm-discard") : void handleDiscard())}
-              className="rounded-md border border-red-300 bg-white px-3 py-1.5 font-medium text-red-900 hover:bg-red-100"
+              className={buttonClass({ variant: "ghost-danger", size: "sm" })}
             >
               {hasKept ? "Remover do aparelho" : "Dispensar aviso"}
             </button>

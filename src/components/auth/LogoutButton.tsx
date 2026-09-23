@@ -86,14 +86,14 @@ export function LogoutButton({ className }: { className?: string } = {}) {
       <button
         type="button"
         onClick={openDialog}
-        className={className ?? "rounded-md border border-slate-600 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-800"}
+        className={className ?? "rounded-lg border border-slate-600 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-800"}
       >
         Sair
       </button>
 
       <dialog
         ref={dialogRef}
-        className="w-[min(28rem,90vw)] rounded-lg border border-slate-200 p-0 backdrop:bg-black/40"
+        className="w-[min(28rem,90vw)] rounded-xl border border-line p-0 backdrop:bg-ink/50"
         aria-labelledby={titleId}
       >
         <div className="p-5">
@@ -103,9 +103,12 @@ export function LogoutButton({ className }: { className?: string } = {}) {
 
           {pendingCount > 0 ? (
             <p className="mt-2 text-sm text-slate-600">
-              Você tem <strong>{pendingCount}</strong> alteração(ões) ainda não sincronizada(s)
-              neste dispositivo. Elas serão perdidas se você limpar os dados locais. Recomendamos
-              exportar antes de continuar.
+              Você tem{" "}
+              <strong>
+                {pendingCount === 1 ? "1 alteração ainda não sincronizada" : `${pendingCount} alterações ainda não sincronizadas`}
+              </strong>{" "}
+              neste dispositivo. {pendingCount === 1 ? "Ela será perdida" : "Elas serão perdidas"} se você limpar os dados locais.
+              Recomendamos exportar antes de continuar.
             </p>
           ) : (
             <p className="mt-2 text-sm text-slate-600">

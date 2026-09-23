@@ -39,6 +39,9 @@ export function isNearQuotaLimit(status: StorageStatus): boolean {
   return status.usageRatio != null && status.usageRatio >= QUOTA_WARNING_THRESHOLD;
 }
 
+const oneDecimal = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+/** "224,0 KB", "3,0 GB": vírgula decimal, como o resto do app. */
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   const units = ["KB", "MB", "GB"];
@@ -48,5 +51,5 @@ export function formatBytes(bytes: number): string {
     value /= 1024;
     unitIndex += 1;
   }
-  return `${value.toFixed(1)} ${units[unitIndex]}`;
+  return `${oneDecimal.format(value)} ${units[unitIndex]}`;
 }

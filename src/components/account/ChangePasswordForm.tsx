@@ -59,7 +59,7 @@ export function ChangePasswordForm({ forced }: { forced: boolean }) {
       <RequiredNote />
 
       {forced ? (
-        <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
           Você entrou com uma senha provisória. Por segurança, crie a sua própria senha antes de continuar.
         </p>
       ) : (
@@ -67,7 +67,7 @@ export function ChangePasswordForm({ forced }: { forced: boolean }) {
       )}
 
       {error && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </p>
       )}

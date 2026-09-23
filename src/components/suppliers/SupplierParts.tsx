@@ -1,20 +1,25 @@
 import { notFound } from "next/navigation";
 import { AppLink } from "@/components/ui/AppLink";
+import { buttonClass } from "@/components/ui/Button";
+import { cardClass } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Stat } from "@/components/ui/Stat";
 import { formatBRL } from "@/lib/domain/crm";
 import type { SpendGroup } from "@/lib/domain/supplier";
 import { AdminActionError } from "@/server/errors";
 
+// A linha inteira é o link (alvo de 44 px), com o nome à esquerda e o valor à direita.
+const SPEND_ROW = "flex min-h-11 items-center justify-between gap-2 px-3 py-2 transition-colors hover:bg-slate-50";
+
 /** Quem não é do cadastro de fornecedores (ou não tem empresa) vê isto, não uma página de erro. */
 export function SupplierForbidden({ message }: { message: string }) {
   return (
-    <div className="mx-auto max-w-xl">
-      <h1 className="text-2xl font-semibold text-slate-900">Fornecedores</h1>
-      <div className="mt-4 rounded-md bg-slate-100 px-4 py-3 text-sm text-slate-700">
-        <p>{message}</p>
-        <AppLink href="/eventos" className="mt-3 inline-block font-medium text-brand-700 hover:underline">
-          Voltar aos eventos
-        </AppLink>
-      </div>
+    <div className="max-w-xl">
+      <PageHeader title="Fornecedores" description={message} />
+      <AppLink href="/eventos" className={buttonClass({ variant: "secondary", className: "mt-6" })}>
+        Voltar aos eventos
+      </AppLink>
     </div>
   );
 }
@@ -49,28 +54,30 @@ export function SupplierSpendSection({ realized, planned, summary }: { realized:
       </h2>
       <p className="mt-1 text-xs text-slate-500">Só titular e administração veem esta seção. Lançamentos estornados não contam.</p>
 
-      <dl className="mt-3 grid gap-4 rounded-lg border border-slate-200 bg-white p-4 text-sm sm:grid-cols-2">
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-slate-500">Gasto (lançado)</dt>
-          <dd className="text-base font-semibold tabular-nums text-slate-900" data-testid="spend-realized">
-            {formatBRL(summary.realizedTotalCents)}
-          </dd>
-          <dd className="text-xs text-slate-500">
-            {summary.realizedCount} lançamento{summary.realizedCount === 1 ? "" : "s"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-slate-500">Orçado</dt>
-          <dd className="text-base font-semibold tabular-nums text-slate-900" data-testid="spend-planned">
-            {formatBRL(summary.plannedTotalCents)}
-          </dd>
-          <dd className="text-xs text-slate-500">
-            {summary.plannedCount} item{summary.plannedCount === 1 ? "" : "s"} de orçamento
-          </dd>
-        </div>
+      <dl className={cardClass({ className: "mt-3 grid gap-4 sm:grid-cols-2" })}>
+        <Stat
+          label="Gasto (lançado)"
+          valueTestId="spend-realized"
+          value={formatBRL(summary.realizedTotalCents)}
+          note={
+            <dd className="mt-0.5 text-xs text-slate-500">
+              {summary.realizedCount} lançamento{summary.realizedCount === 1 ? "" : "s"}
+            </dd>
+          }
+        />
+        <Stat
+          label="Orçado"
+          valueTestId="spend-planned"
+          value={formatBRL(summary.plannedTotalCents)}
+          note={
+            <dd className="mt-0.5 text-xs text-slate-500">
+              {summary.plannedCount} item{summary.plannedCount === 1 ? "" : "s"} de orçamento
+            </dd>
+          }
+        />
       </dl>
       {summary.overPlanned && (
-        <p role="status" className="mt-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900" data-testid="spend-over">
+        <p role="status" className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900" data-testid="spend-over">
           Gastou-se mais com este fornecedor do que o orçado com ele.
         </p>
       )}
@@ -79,15 +86,17 @@ export function SupplierSpendSection({ realized, planned, summary }: { realized:
         <div>
           <h3 className="text-sm font-semibold text-slate-800">Gasto por evento</h3>
           {realized.length === 0 ? (
-            <p className="mt-1 text-sm text-slate-500">Nenhum lançamento com este fornecedor.</p>
+            <div className="mt-1">
+              <EmptyState>Nenhum lançamento com este fornecedor.</EmptyState>
+            </div>
           ) : (
-            <ul className="mt-1 divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white text-sm" data-testid="spend-events">
+            <ul className="mt-1 divide-y divide-slate-100 overflow-hidden rounded-xl border border-line bg-white text-sm" data-testid="spend-events">
               {realized.map((group) => (
-                <li key={group.id} className="flex items-center justify-between gap-2 px-3 py-2">
-                  <AppLink href={`/financeiro/eventos/${group.id}`} className="font-medium text-brand-700 hover:underline">
-                    {group.name}
+                <li key={group.id}>
+                  <AppLink href={`/financeiro/eventos/${group.id}`} className={SPEND_ROW}>
+                    <span className="font-medium text-brand-700">{group.name}</span>
+                    <span className="tabular-nums text-slate-900">{formatBRL(group.totalCents)}</span>
                   </AppLink>
-                  <span className="tabular-nums text-slate-900">{formatBRL(group.totalCents)}</span>
                 </li>
               ))}
             </ul>
@@ -96,15 +105,17 @@ export function SupplierSpendSection({ realized, planned, summary }: { realized:
         <div>
           <h3 className="text-sm font-semibold text-slate-800">Orçado por oportunidade</h3>
           {planned.length === 0 ? (
-            <p className="mt-1 text-sm text-slate-500">Nenhum orçamento cita este fornecedor.</p>
+            <div className="mt-1">
+              <EmptyState>Nenhum orçamento cita este fornecedor.</EmptyState>
+            </div>
           ) : (
-            <ul className="mt-1 divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white text-sm" data-testid="spend-opportunities">
+            <ul className="mt-1 divide-y divide-slate-100 overflow-hidden rounded-xl border border-line bg-white text-sm" data-testid="spend-opportunities">
               {planned.map((group) => (
-                <li key={group.id} className="flex items-center justify-between gap-2 px-3 py-2">
-                  <AppLink href={`/comercial/oportunidades/${group.id}/orcamento`} className="font-medium text-brand-700 hover:underline">
-                    {group.name}
+                <li key={group.id}>
+                  <AppLink href={`/comercial/oportunidades/${group.id}/orcamento`} className={SPEND_ROW}>
+                    <span className="font-medium text-brand-700">{group.name}</span>
+                    <span className="tabular-nums text-slate-900">{formatBRL(group.totalCents)}</span>
                   </AppLink>
-                  <span className="tabular-nums text-slate-900">{formatBRL(group.totalCents)}</span>
                 </li>
               ))}
             </ul>

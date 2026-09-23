@@ -5,6 +5,10 @@ import { requireSession } from "@/lib/auth/require-session";
 import { BUDGET_CATEGORIES } from "@/lib/domain/budget";
 import { supplierSummaryLine } from "@/lib/domain/supplier";
 import { listSuppliers } from "@/server/suppliers/supplier.service";
+import { buttonClass } from "@/components/ui/Button";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Badge } from "@/components/ui/Badge";
 
 /**
  * Os fornecedores da empresa, com busca (nome, contato, e-mail ou CPF/CNPJ) e filtro pela categoria
@@ -23,16 +27,16 @@ export default async function SuppliersPage({ searchParams }: { searchParams: Pr
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Fornecedores</h1>
-          <p className="mt-1 text-sm text-slate-500">Quem fornece serviço ou material à produtora. Um fornecedor nunca é apagado: quem deixa de fornecer é arquivado.</p>
-        </div>
-        <AppLink href="/fornecedores/novo" className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-          Novo fornecedor
-        </AppLink>
-      </div>
+    <div className="max-w-4xl">
+      <PageHeader
+        title="Fornecedores"
+        description="Quem fornece serviço ou material à produtora. Um fornecedor nunca é apagado: quem deixa de fornecer é arquivado."
+        actions={
+          <AppLink href="/fornecedores/novo" className={buttonClass()}>
+            Novo fornecedor
+          </AppLink>
+        }
+      />
 
       <form method="get" role="search" aria-label="Buscar fornecedores" className="mt-4 flex flex-wrap items-end gap-3">
         <div className="min-w-0 flex-1">
@@ -64,29 +68,35 @@ export default async function SuppliersPage({ searchParams }: { searchParams: Pr
             ))}
           </select>
         </div>
-        <label className="flex items-center gap-2 pb-2 text-sm text-slate-700">
-          <input type="checkbox" name="arquivados" value="1" defaultChecked={arquivados === "1"} />
+        <label className="flex min-h-11 items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" name="arquivados" value="1" defaultChecked={arquivados === "1"} className="size-4 accent-brand-600" />
           Mostrar arquivados
         </label>
-        <button type="submit" className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+        <button type="submit" className={buttonClass({ variant: "secondary" })}>
           Buscar
         </button>
       </form>
 
       {data.rows.length === 0 ? (
-        <p className="mt-6 text-slate-500">{q || category ? "Nenhum fornecedor encontrado para esta busca." : "Nenhum fornecedor cadastrado ainda."}</p>
+        <div className="mt-6">
+          {q || category ? (
+            <EmptyState hint="Confira a grafia, busque por parte do nome ou escolha outra categoria.">Nenhum fornecedor encontrado para esta busca.</EmptyState>
+          ) : (
+            <EmptyState hint="Cadastre o primeiro em Novo fornecedor.">Nenhum fornecedor cadastrado ainda.</EmptyState>
+          )}
+        </div>
       ) : (
         <ul className="mt-6 space-y-2">
           {data.rows.map((supplier) => (
             <li key={supplier.id}>
               <AppLink
                 href={`/fornecedores/${supplier.id}`}
-                className="block rounded-lg border border-slate-200 bg-white p-4 shadow-sm hover:border-brand-300 hover:shadow"
+                className="block rounded-xl border border-line bg-white p-4 transition-colors hover:border-brand-300"
                 data-testid="supplier-row"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-medium text-slate-900">{supplier.name}</span>
-                  {supplier.archived && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-700">Arquivado</span>}
+                  <span className="font-semibold text-slate-900">{supplier.name}</span>
+                  {supplier.archived && <Badge tone="neutral">Arquivado</Badge>}
                 </div>
                 <p className="mt-1 text-sm text-slate-500">{supplierSummaryLine(supplier)}</p>
                 <p className="mt-0.5 text-sm text-slate-500">

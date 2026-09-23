@@ -143,13 +143,13 @@ export function ProposalForm({
   return (
     <form onSubmit={onSubmit} noValidate className="mt-6 space-y-5" aria-label="Dados da proposta">
       {error && (
-        <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           <p>{error}</p>
           {outdated && (
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="mt-2 rounded-md border border-red-300 bg-white px-3 py-1 text-sm font-medium text-red-700 hover:bg-red-100"
+              className={buttonClass({ variant: "secondary", size: "sm", className: "mt-2" })}
             >
               Carregar os dados atuais
             </button>
@@ -164,7 +164,7 @@ export function ProposalForm({
             const n = index + 1;
             const lineTotal = live.lineTotals[index] ?? 0;
             return (
-              <li key={row.key} className="rounded-md border border-slate-200 bg-white p-3" data-testid="proposal-form-row">
+              <li key={row.key} className="rounded-xl border border-line bg-white p-3" data-testid="proposal-form-row">
                 <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_6rem_9rem]">
                   <label className="block">
                     <span aria-hidden="true" className="text-xs text-slate-500">
@@ -214,7 +214,7 @@ export function ProposalForm({
                     onClick={() => setRows((current) => current.filter((r) => r.key !== row.key))}
                     disabled={rows.length === 1}
                     aria-label={`Remover item ${n}`}
-                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                    className={buttonClass({ variant: "secondary", size: "sm" })}
                   >
                     Remover
                   </button>
@@ -237,7 +237,7 @@ export function ProposalForm({
           type="button"
           onClick={() => setRows((current) => [...current, newRow()])}
           disabled={rows.length >= MAX_ITEMS}
-          className="mt-3 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+          className={buttonClass({ variant: "secondary", size: "sm", className: "mt-3" })}
         >
           Adicionar item
         </button>
@@ -261,7 +261,7 @@ export function ProposalForm({
         <textarea id="proposal-notes" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={MAX_NOTES} rows={4} className={inputClass} />
       </Field>
 
-      <dl className="ml-auto w-full max-w-xs space-y-1 rounded-md bg-slate-50 p-3 text-sm" aria-label="Totais">
+      <dl className="ml-auto w-full max-w-xs space-y-1 rounded-lg bg-slate-50 p-3 text-sm" aria-label="Totais">
         <div className="flex justify-between">
           <dt className="text-slate-600">Subtotal</dt>
           <dd className="tabular-nums" data-testid="form-subtotal">

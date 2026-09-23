@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { warmEventRoutes } from "@/lib/offline/warm-routes";
+import { buttonClass } from "@/components/ui/Button";
 
 /**
  * Os DADOS do evento já estão no aparelho, mas as TELAS (HTML) não estão no cache do
@@ -37,7 +38,7 @@ export function CacheRoutesButton({ eventId, onDone }: { eventId: string; onDone
         type="button"
         onClick={() => void handleClick()}
         disabled={running}
-        className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+        className={buttonClass()}
       >
         {running ? "Guardando telas…" : "Guardar telas para uso sem internet"}
       </button>

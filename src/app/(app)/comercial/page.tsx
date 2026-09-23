@@ -3,6 +3,8 @@ import { OpportunityCardLink, PipelineBoard, crmErrorView } from "@/components/c
 import { requireSession } from "@/lib/auth/require-session";
 import { formatBRL, formatDateBR } from "@/lib/domain/crm";
 import { listPipeline } from "@/server/crm/opportunity.service";
+import { buttonClass } from "@/components/ui/Button";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 /**
  * O funil comercial — Server Component ao vivo (exige conexão, como o catálogo de eventos e o Painel).
@@ -21,29 +23,29 @@ export default async function CommercialPage() {
   const openCount = pipeline.columns.reduce((sum, column) => sum + column.count, 0);
 
   return (
-    <div className="mx-auto max-w-7xl">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Comercial</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {openCount} oportunidade{openCount === 1 ? "" : "s"} em andamento · {formatBRL(openTotal)} estimados
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <AppLink href="/comercial/propostas" className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
-            Propostas
-          </AppLink>
-          <AppLink href="/comercial/clientes" className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
-            Clientes
-          </AppLink>
-          <AppLink href="/comercial/oportunidades/nova" className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-            Nova oportunidade
-          </AppLink>
-        </div>
-      </div>
+    <div className="max-w-7xl">
+      {/* As ações quebram de linha INTEIRAS (flex-wrap do PageHeader): no celular, "Nova oportunidade"
+          desce para a linha de baixo em vez de quebrar o texto dentro do botão. */}
+      <PageHeader
+        title="Comercial"
+        description={`${openCount} oportunidade${openCount === 1 ? "" : "s"} em andamento · ${formatBRL(openTotal)} estimados`}
+        actions={
+          <>
+            <AppLink href="/comercial/propostas" className={buttonClass({ variant: "secondary" })}>
+              Propostas
+            </AppLink>
+            <AppLink href="/comercial/clientes" className={buttonClass({ variant: "secondary" })}>
+              Clientes
+            </AppLink>
+            <AppLink href="/comercial/oportunidades/nova" className={buttonClass()}>
+              Nova oportunidade
+            </AppLink>
+          </>
+        }
+      />
 
       {pipeline.truncated && (
-        <p role="status" className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        <p role="status" className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
           Há mais oportunidades em andamento do que a tela mostra. As contagens e os valores de cada etapa somam todas.
         </p>
       )}
@@ -57,11 +59,11 @@ export default async function CommercialPage() {
             ["Perdidas recentemente", pipeline.lost, "lost"],
           ] as const
         ).map(([title, cards, key]) => (
-          <details key={key} className="rounded-lg border border-slate-200 bg-white p-3" data-testid={`closed-${key}`}>
-            <summary className="cursor-pointer text-sm font-semibold text-slate-800">
+          <details key={key} className="rounded-xl border border-line bg-white p-3" data-testid={`closed-${key}`}>
+            <summary className="-m-3 flex min-h-11 cursor-pointer items-center gap-2 rounded-xl p-3 text-sm font-semibold text-slate-800 hover:bg-slate-50">
               {title} ({cards.length})
             </summary>
-            <ul className="mt-3 space-y-2">
+            <ul className="mt-6 space-y-2">
               {cards.map((card) => (
                 <li key={card.id}>
                   <OpportunityCardLink card={card} />

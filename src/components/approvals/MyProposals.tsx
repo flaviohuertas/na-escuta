@@ -2,6 +2,8 @@ import { AppLink } from "@/components/ui/AppLink";
 import { ProposalChanges } from "@/components/approvals/ProposalChanges";
 import { formatDateTimeBR } from "@/lib/domain/approval-format";
 import type { ProposalStatus, ProposalView } from "@/lib/domain/approval";
+import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export const PROPOSAL_STATUS_LABEL: Record<ProposalStatus, string> = {
   PENDING: "Aguardando decisão",
@@ -9,14 +11,15 @@ export const PROPOSAL_STATUS_LABEL: Record<ProposalStatus, string> = {
   REJECTED: "Rejeitada",
 };
 
-const STATUS_STYLE: Record<ProposalStatus, string> = {
-  PENDING: "bg-amber-100 text-amber-900",
-  APPROVED: "bg-emerald-100 text-emerald-900",
-  REJECTED: "bg-red-100 text-red-900",
+// Aguardando decisão é o que está em curso, esperando alguém: a cor da marca (regra do `Badge`).
+const STATUS_TONE: Record<ProposalStatus, BadgeTone> = {
+  PENDING: "brand",
+  APPROVED: "success",
+  REJECTED: "danger",
 };
 
 export function ProposalStatusBadge({ status }: { status: ProposalStatus }) {
-  return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[status]}`}>{PROPOSAL_STATUS_LABEL[status]}</span>;
+  return <Badge tone={STATUS_TONE[status]}>{PROPOSAL_STATUS_LABEL[status]}</Badge>;
 }
 
 /**
@@ -25,12 +28,18 @@ export function ProposalStatusBadge({ status }: { status: ProposalStatus }) {
  */
 export function MyProposals({ proposals }: { proposals: ProposalView[] }) {
   if (proposals.length === 0) {
-    return <p className="mt-2 text-sm text-slate-500">Você ainda não propôs nenhuma alteração.</p>;
+    return (
+      <div className="mt-2">
+        <EmptyState hint="Para corrigir um dado de evento, use Propor alteração na lista de eventos.">
+          Você ainda não propôs nenhuma alteração.
+        </EmptyState>
+      </div>
+    );
   }
   return (
     <ul className="mt-2 space-y-3">
       {proposals.map((proposal) => (
-        <li key={proposal.id} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm" data-testid="my-proposal">
+        <li key={proposal.id} className="rounded-xl border border-line bg-white p-4" data-testid="my-proposal">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <AppLink href={`/eventos/${proposal.eventId}`} className="font-medium text-slate-900 hover:underline">
               {proposal.eventName}

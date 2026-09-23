@@ -106,7 +106,7 @@ export function ChecklistDetailScreen({
 
   if (checklist === null) {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="max-w-2xl">
         <PageHeader title="Checklist não encontrado" back={back} />
         <p className="mt-2 text-sm text-slate-600">
           Este checklist não existe neste aparelho. Ele pode ter sido excluído, ou o evento ainda não
@@ -120,7 +120,7 @@ export function ChecklistDetailScreen({
   const totalCount = items?.length ?? 0;
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="max-w-2xl">
       <PageHeader
         title={checklist.title}
         back={back}

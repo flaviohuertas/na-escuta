@@ -12,12 +12,33 @@ import {
   type StorageStatus,
 } from "@/lib/storage/persistence";
 import { useSyncStatus } from "@/components/providers/SyncProvider";
+import { Badge } from "@/components/ui/Badge";
+import { buttonClass } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
 
+const syncTimeFmt = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+
+function describePending(count: number): string {
+  if (count === 0) return "nenhuma alteração pendente";
+  return count === 1 ? "1 alteração pendente" : `${count} alterações pendentes`;
+}
+
+/**
+ * O estado da sincronização neste aparelho. Sincronizar é o botão da barra de cima (está em todas as
+ * telas); esta tela não repete o botão.
+ */
 export function SyncSettingsScreen() {
   const [storage, setStorage] = useState<StorageStatus | null>(null);
-  const { connectivity, lastSyncAt, pendingCount, syncNow, phase } = useSyncStatus();
+  const { connectivity, lastSyncAt, pendingCount } = useSyncStatus();
 
   const events = useLiveQuery(async () => getDb().syncState.toArray(), [], [] as SyncCursor[]);
+  // O nome de cada evento preparado (o registro de sincronização só guarda o id).
+  const names = useLiveQuery(
+    async () => new Map((await getDb().events.toArray()).map((event) => [event.id, event.name])),
+    [],
+    new Map<string, string>()
+  );
 
   useEffect(() => {
     void getStorageStatus().then(setStorage);
@@ -29,46 +50,54 @@ export function SyncSettingsScreen() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">Sincronização</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Status de conectividade: <strong>{connectivity.status === "online" ? "online" : "offline"}</strong>
-          {" · "}
-          {pendingCount} alteração(ões) pendente(s)
-        </p>
-        <button
-          type="button"
-          onClick={() => void syncNow()}
-          disabled={phase === "syncing" || connectivity.status !== "online"}
-          className="mt-2 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-        >
-          {phase === "syncing" ? "Sincronizando…" : "Sincronizar agora"}
-        </button>
-      </div>
+    <div className="max-w-2xl space-y-8">
+      <PageHeader
+        title="Sincronização"
+        description={
+          <>
+            Conexão: <strong>{connectivity.status === "online" ? "online" : "offline"}</strong> · {describePending(pendingCount)}. Para
+            sincronizar, use o botão da barra de cima.
+          </>
+        }
+      />
 
-      <div>
-        <h2 className="text-sm font-medium text-slate-700">Eventos preparados neste dispositivo</h2>
-        {events.length === 0 && <p className="mt-2 text-sm text-slate-500">Nenhum evento preparado ainda.</p>}
-        <ul className="mt-2 space-y-1">
-          {events.map((e) => (
-            <li key={e.key} className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
-              <span className="font-mono text-xs text-slate-500">{e.key}</span>
-              {" — "}
-              {e.accessRevokedAt
-                ? "acesso retirado — os dados foram removidos deste aparelho"
-                : e.lastFullBootstrapAt
-                  ? "preparado"
-                  : "preparação incompleta"}
-              {e.lastSyncAt &&
-                ` · última sincronização: ${new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(e.lastSyncAt))}`}
-            </li>
-          ))}
-        </ul>
-      </div>
+      <section aria-labelledby="prepared">
+        <h2 id="prepared" className="text-lg font-semibold text-slate-900">
+          Eventos preparados neste aparelho
+        </h2>
+        {events.length === 0 ? (
+          <div className="mt-2">
+            <EmptyState hint="Abra um evento na lista de Eventos e toque em Preparar evento para uso offline.">
+              Nenhum evento preparado ainda.
+            </EmptyState>
+          </div>
+        ) : (
+          <ul className="mt-2 divide-y divide-slate-100 rounded-xl border border-line bg-white text-sm">
+            {events.map((e) => (
+              <li key={e.key} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                <span className="min-w-0">
+                  <span className="block font-medium text-slate-900">{names.get(e.key) ?? "Evento sem nome neste aparelho"}</span>
+                  {e.lastSyncAt && (
+                    <span className="block text-xs text-slate-500">Última sincronização: {syncTimeFmt.format(new Date(e.lastSyncAt))}</span>
+                  )}
+                </span>
+                {e.accessRevokedAt ? (
+                  <Badge tone="danger">Acesso retirado: dados removidos</Badge>
+                ) : e.lastFullBootstrapAt ? (
+                  <Badge tone="success">Preparado</Badge>
+                ) : (
+                  <Badge tone="warning">Preparação incompleta</Badge>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
-      <div>
-        <h2 className="text-sm font-medium text-slate-700">Armazenamento local</h2>
+      <section aria-labelledby="storage">
+        <h2 id="storage" className="text-lg font-semibold text-slate-900">
+          Armazenamento local
+        </h2>
         {storage?.supported ? (
           <div className="mt-2 space-y-1 text-sm text-slate-700">
             <p>
@@ -79,7 +108,7 @@ export function SyncSettingsScreen() {
                 Uso: {formatBytes(storage.usageBytes)} de {formatBytes(storage.quotaBytes)}
                 {isNearQuotaLimit(storage) && (
                   <span className="ml-2 font-medium text-status-error">
-                    (perto do limite — libere espaço ou sincronize em breve)
+                    Perto do limite: libere espaço ou sincronize em breve.
                   </span>
                 )}
               </p>
@@ -88,7 +117,7 @@ export function SyncSettingsScreen() {
               <button
                 type="button"
                 onClick={() => void handleRequestPersist()}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+                className={buttonClass({ variant: "secondary", size: "sm" })}
               >
                 Solicitar armazenamento persistente
               </button>
@@ -99,10 +128,10 @@ export function SyncSettingsScreen() {
             Este navegador não expõe informações de quota de armazenamento.
           </p>
         )}
-      </div>
+      </section>
 
-      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
-        <h2 className="text-sm font-medium text-slate-700">Importante sobre o modo offline</h2>
+      <div className="rounded-xl border border-line bg-slate-50 p-4 text-sm text-slate-700">
+        <h2 className="text-base font-semibold text-slate-900">Importante sobre o modo offline</h2>
         <ul className="mt-2 list-disc space-y-1 pl-4">
           <li>O primeiro uso em cada dispositivo exige conexão com a internet.</li>
           <li>
@@ -114,8 +143,8 @@ export function SyncSettingsScreen() {
             armazenamento persistente solicitado.
           </li>
           <li>
-            O suporte offline não é idêntico em todos os navegadores — o Safari no iOS, por
-            exemplo, é mais agressivo ao descartar dados do IndexedDB do que Chrome ou Edge.
+            O suporte offline não é idêntico em todos os navegadores. O Safari no iOS, por
+            exemplo, descarta dados do IndexedDB mais cedo do que o Chrome ou o Edge.
           </li>
         </ul>
       </div>

@@ -21,7 +21,7 @@ export function MarginSummary({
   const loss = margin !== null && margin.marginCents < 0;
 
   return (
-    <dl className="grid gap-x-6 gap-y-3 rounded-lg border border-slate-200 bg-white p-4 text-sm sm:grid-cols-3" data-testid="margin-summary">
+    <dl className="grid gap-x-6 gap-y-3 rounded-xl border border-line bg-white p-4 text-sm sm:grid-cols-3" data-testid="margin-summary">
       <div>
         <dt className="text-xs uppercase tracking-wide text-slate-500">Custo previsto</dt>
         <dd className="text-base font-semibold tabular-nums text-slate-900" data-testid="budget-cost">
@@ -80,14 +80,14 @@ export function BudgetTable({ items, totals }: { items: BudgetTableItem[]; total
   return (
     <div className="space-y-4">
       {totals.byCategory.map((group) => (
-        <section key={group.category} aria-label={categoryLabel(group.category)} data-testid={`category-${group.category}`} className="rounded-lg border border-slate-200 bg-white">
+        <section key={group.category} aria-label={categoryLabel(group.category)} data-testid={`category-${group.category}`} className="rounded-xl border border-line bg-white">
           <header className="flex items-baseline justify-between gap-2 border-b border-slate-100 px-4 py-2">
             <h3 className="text-sm font-semibold text-slate-800">{categoryLabel(group.category)}</h3>
             <span className="text-sm font-medium tabular-nums text-slate-900" data-testid={`subtotal-${group.category}`}>
               {formatBRL(group.subtotalCents)}
             </span>
           </header>
-          <div className="overflow-x-auto" role="region" aria-label={`Itens de ${categoryLabel(group.category)}`} tabIndex={0}>
+          <div className="relative overflow-x-auto" role="region" aria-label={`Itens de ${categoryLabel(group.category)}`} tabIndex={0}>
             <table className="w-full text-left text-sm">
               <caption className="sr-only">Itens de {categoryLabel(group.category)}</caption>
               <thead>

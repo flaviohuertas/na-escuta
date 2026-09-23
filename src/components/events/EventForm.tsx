@@ -33,7 +33,7 @@ export interface EventFormInitial {
 type FieldErrors = Partial<Record<string, string[]>>;
 
 const OFFLINE_MESSAGE =
-  "Sem conexão. Criar e editar eventos exige internet — tente de novo quando estiver conectado. O que você digitou continua aqui.";
+  "Sem conexão. Criar e editar eventos exige internet. Tente de novo quando estiver conectado. O que você digitou continua aqui.";
 
 /**
  * Criar/editar evento. É uma ação de GESTÃO, feita online: não passa pela outbox. Por isso, sem
@@ -102,7 +102,7 @@ export function EventForm({ mode, initial }: { mode: "create" | "edit"; initial?
       } | null;
 
       if (res.status === 401) {
-        setError("Sua sessão expirou. Entre de novo para salvar — o que você digitou continua aqui.");
+        setError("Sua sessão expirou. Entre de novo para salvar: o que você digitou continua aqui.");
         return;
       }
       if (res.status === 422) {
@@ -138,13 +138,13 @@ export function EventForm({ mode, initial }: { mode: "create" | "edit"; initial?
       <RequiredNote />
 
       {error && (
-        <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           <p>{error}</p>
           {outdated && (
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="mt-2 rounded-md border border-red-300 bg-white px-3 py-1 text-sm font-medium text-red-700 hover:bg-red-100"
+              className={buttonClass({ variant: "secondary", size: "sm", className: "mt-2" })}
             >
               Carregar os dados atuais
             </button>

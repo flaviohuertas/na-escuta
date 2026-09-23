@@ -1,4 +1,5 @@
-import { AppLink } from "@/components/ui/AppLink";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { NoValue } from "@/components/ui/Stat";
 import { SupplierArchiveButton } from "@/components/suppliers/SupplierArchiveButton";
 import { SupplierForm } from "@/components/suppliers/SupplierForm";
 import { SupplierSpendSection, supplierErrorView } from "@/components/suppliers/SupplierParts";
@@ -34,13 +35,10 @@ export default async function SupplierPage({ params }: { params: Promise<{ suppl
   const archived = supplier.archivedAt !== null;
 
   return (
-    <div className="mx-auto max-w-xl">
-      <AppLink href="/fornecedores" className="text-sm text-slate-600 hover:text-slate-900">
-        ← Fornecedores
-      </AppLink>
-      <h1 className="mt-2 text-2xl font-semibold text-slate-900">{supplier.name}</h1>
+    <div className="max-w-xl">
+      <PageHeader back={{ href: "/fornecedores", label: "Fornecedores" }} title={supplier.name} />
       {archived && (
-        <p role="status" className="mt-2 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">
+        <p role="status" className="mt-2 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700">
           Fornecedor arquivado. Reative-o para editar o cadastro ou vinculá-lo a novos orçamentos e lançamentos. Os vínculos que já existem continuam.
         </p>
       )}
@@ -109,12 +107,12 @@ export default async function SupplierPage({ params }: { params: Promise<{ suppl
           <h2 id="history" className="text-lg font-semibold text-slate-900">
             Histórico
           </h2>
-          <ul className="mt-2 divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white text-sm">
+          <ul className="mt-2 divide-y divide-slate-100 rounded-xl border border-line bg-white text-sm">
             {history.map((entry) => (
               <li key={entry.id} className="flex flex-wrap items-baseline justify-between gap-2 px-3 py-2" data-testid="history-entry">
                 <span className="text-slate-800">{entry.text}</span>
                 <span className="text-xs text-slate-500">
-                  {entry.actorName ?? "—"} · {formatDateTimeBR(entry.at.toISOString())}
+                  {entry.actorName ?? <NoValue label="sem autor" />} · {formatDateTimeBR(entry.at.toISOString())}
                 </span>
               </li>
             ))}

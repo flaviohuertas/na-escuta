@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   QUOTA_WARNING_THRESHOLD,
+  formatBytes,
   getStorageStatus,
   isNearQuotaLimit,
   requestPersistentStorage,
@@ -42,5 +43,12 @@ describe("storage/persistence", () => {
   it("requestPersistentStorage retorna false silenciosamente quando não suportado", async () => {
     vi.stubGlobal("navigator", {});
     await expect(requestPersistentStorage()).resolves.toBe(false);
+  });
+
+  it("formatBytes escreve com vírgula decimal, como o resto do app", () => {
+    expect(formatBytes(512)).toBe("512 B");
+    expect(formatBytes(224 * 1024)).toBe("224,0 KB");
+    expect(formatBytes(3 * 1024 ** 3)).toBe("3,0 GB");
+    expect(formatBytes(1.5 * 1024 ** 2)).toBe("1,5 MB");
   });
 });

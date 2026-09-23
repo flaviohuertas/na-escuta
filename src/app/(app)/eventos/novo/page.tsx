@@ -3,6 +3,8 @@ import { EventForm } from "@/components/events/EventForm";
 import { requireSession } from "@/lib/auth/require-session";
 import { canCreateEvents } from "@/lib/domain/permissions";
 import { getActiveCompanyRole } from "@/server/auth/membership";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { buttonClass } from "@/components/ui/Button";
 
 /**
  * Renderizada no servidor e SEM cache do Service Worker (ver `isOfflineCacheablePath`): criar
@@ -14,21 +16,27 @@ export default async function NewEventPage() {
   const allowed = role !== null && canCreateEvents(role);
 
   return (
-    <div className="mx-auto max-w-xl">
-      <h1 className="text-2xl font-semibold text-slate-900">Novo evento</h1>
+    <div className="max-w-xl">
       {allowed ? (
         <>
-          <p className="mt-1 text-sm text-slate-500">Você será o gestor deste evento.</p>
+          <PageHeader back={{ href: "/eventos", label: "Eventos" }} title="Novo evento" description="Você será o gestor deste evento." />
           <EventForm mode="create" />
         </>
       ) : (
-        <div className="mt-4 rounded-md bg-slate-100 px-4 py-3 text-sm text-slate-700">
-          <p>Você não tem permissão para criar eventos nesta empresa.</p>
-          <p className="mt-1">Peça a quem administra a empresa para criar o evento ou ajustar o seu papel.</p>
-          <AppLink href="/eventos" className="mt-3 inline-block font-medium text-brand-700 hover:underline">
+        <>
+          <PageHeader
+            title="Novo evento"
+            description={
+              <>
+                <span>Você não tem permissão para criar eventos nesta empresa.</span> Peça a quem administra a empresa para criar o
+                evento ou ajustar o seu papel.
+              </>
+            }
+          />
+          <AppLink href="/eventos" className={buttonClass({ variant: "secondary", className: "mt-6" })}>
             Voltar aos eventos
           </AppLink>
-        </div>
+        </>
       )}
     </div>
   );

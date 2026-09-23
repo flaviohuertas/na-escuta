@@ -8,12 +8,13 @@ import { AppLink } from "@/components/ui/AppLink";
 import { explainBlockedProposalAction, type ProposalContext } from "@/lib/domain/proposal";
 import { ProposalActionSchema } from "@/lib/domain/proposal.schema";
 import { navigateToDocument } from "@/lib/offline/navigate";
+import { buttonClass } from "@/components/ui/Button";
 
 type Pending = "SEND" | "ACCEPT" | "REJECT" | "DISCARD";
 
 const PANEL: Record<Pending, { text: string; confirm: string; danger?: boolean; noteLabel?: string }> = {
   SEND: {
-    text: "Isto só REGISTRA que você enviou a proposta ao cliente — o sistema não envia e-mail nem mensagem. Depois de enviada ela não pode mais ser editada: para mudar, crie uma nova versão.",
+    text: "Isto só REGISTRA que você enviou a proposta ao cliente: o sistema não envia e-mail nem mensagem. Depois de enviada ela não pode mais ser editada: para mudar, crie uma nova versão.",
     confirm: "Confirmar envio",
   },
   ACCEPT: {
@@ -22,7 +23,7 @@ const PANEL: Record<Pending, { text: string; confirm: string; danger?: boolean; 
     noteLabel: "Observação (opcional)",
   },
   REJECT: {
-    text: "Registra que o cliente recusou. A oportunidade continua onde está — você decide o próximo passo.",
+    text: "Registra que o cliente recusou. A oportunidade continua onde está, e você decide o próximo passo.",
     confirm: "Confirmar recusa",
     danger: true,
     noteLabel: "Motivo da recusa (opcional)",
@@ -123,7 +124,7 @@ export function ProposalActions({
     <div className="mt-4" data-testid="proposal-actions">
       <div className="flex flex-wrap items-center gap-2">
         {isDraft && blocked("EDIT") === null && (
-          <AppLink href={`/comercial/propostas/${proposalId}/editar`} className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+          <AppLink href={`/comercial/propostas/${proposalId}/editar`} className={buttonClass({ variant: "secondary", size: "sm" })}>
             Editar rascunho
           </AppLink>
         )}
@@ -136,7 +137,7 @@ export function ProposalActions({
               onClick={() => open(action)}
               disabled={busy}
               aria-expanded={pending === action}
-              className={`rounded-md border px-3 py-1.5 text-sm font-medium disabled:opacity-60 ${toneClass[tone]}`}
+              className={`rounded-lg border px-3 py-1.5 text-sm font-medium disabled:opacity-60 ${toneClass[tone]}`}
             >
               {label}
             </button>
@@ -150,7 +151,7 @@ export function ProposalActions({
       )}
 
       {pending && (
-        <div className="mt-3 rounded-md bg-slate-50 p-3" data-testid="proposal-confirm">
+        <div className="mt-3 rounded-lg bg-slate-50 p-3" data-testid="proposal-confirm">
           <p className="text-sm text-slate-700">{PANEL[pending].text}</p>
           {PANEL[pending].noteLabel && (
             <div className="mt-2">
@@ -172,7 +173,7 @@ export function ProposalActions({
               type="button"
               onClick={() => void confirm(pending)}
               disabled={busy}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60 ${PANEL[pending].danger ? "bg-red-700 hover:bg-red-800" : "bg-brand-600 hover:bg-brand-700"}`}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60 ${PANEL[pending].danger ? "bg-red-700 hover:bg-red-800" : "bg-brand-600 hover:bg-brand-700"}`}
             >
               {busy ? "Salvando…" : PANEL[pending].confirm}
             </button>
@@ -184,13 +185,13 @@ export function ProposalActions({
       )}
 
       {error && (
-        <div role="alert" className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           <p>{error}</p>
           {outdated && (
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="mt-2 rounded-md border border-red-300 bg-white px-3 py-1 text-sm font-medium text-red-700 hover:bg-red-100"
+              className={buttonClass({ variant: "secondary", size: "sm", className: "mt-2" })}
             >
               Carregar a proposta atual
             </button>

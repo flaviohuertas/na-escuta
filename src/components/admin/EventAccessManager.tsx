@@ -6,6 +6,8 @@ import { compactSelectClass } from "@/components/ui/Field";
 import { COMPANY_ROLE_LABEL, EVENT_ROLE_LABEL } from "@/lib/domain/event-labels";
 import { EVENT_ROLES, type EventRoleName } from "@/lib/domain/permissions";
 import { callApi } from "./api";
+import { buttonClass } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 
 export interface AccessRow {
   userId: string;
@@ -84,12 +86,12 @@ export function EventAccessManager({
     <div className="mt-6 space-y-8">
       <div aria-live="polite">
         {error && (
-          <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
           </p>
         )}
         {notice && !error && (
-          <p role="status" className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          <p role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
             {notice}
           </p>
         )}
@@ -125,7 +127,7 @@ export function EventAccessManager({
                 <option value="">Escolha…</option>
                 {candidates.map((c) => (
                   <option key={c.userId} value={c.userId}>
-                    {c.name} — {c.email} ({COMPANY_ROLE_LABEL[c.companyRole] ?? c.companyRole})
+                    {c.name} · {c.email} ({COMPANY_ROLE_LABEL[c.companyRole] ?? c.companyRole})
                   </option>
                 ))}
               </select>
@@ -150,7 +152,7 @@ export function EventAccessManager({
             <button
               type="submit"
               disabled={!candidateId || busy === "grant"}
-              className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+              className={buttonClass()}
             >
               {busy === "grant" ? "Concedendo…" : "Dar acesso"}
             </button>
@@ -162,7 +164,7 @@ export function EventAccessManager({
         <h2 id="who-has-access" className="text-base font-semibold text-slate-900">
           Quem tem acesso
         </h2>
-        <ul className="mt-2 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+        <ul className="mt-2 divide-y divide-slate-200 rounded-xl border border-line bg-white">
           {rows.map((row) => {
             const active = row.status === "ACTIVE";
             const rowBusy = busy === `row-${row.userId}`;
@@ -173,7 +175,7 @@ export function EventAccessManager({
                   <p className="text-sm text-slate-500">{row.email}</p>
                   {!row.membershipActive && (
                     <p className="mt-1 text-xs text-amber-700">
-                      Sem vínculo ativo com a empresa — o acesso ao evento não funciona.
+                      Sem vínculo ativo com a empresa: o acesso ao evento não funciona.
                     </p>
                   )}
                 </div>
@@ -200,22 +202,20 @@ export function EventAccessManager({
                         disabled={rowBusy}
                         onClick={() => void change(row, { status: "REVOKED" }, "Acesso retirado.")}
                         aria-label={`Retirar o acesso de ${row.name}`}
-                        className="rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 disabled:opacity-60"
+                        className={buttonClass({ variant: "ghost-danger", size: "sm" })}
                       >
                         Retirar acesso
                       </button>
                     </>
                   ) : (
                     <>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                        Acesso retirado
-                      </span>
+                      <Badge tone="neutral">Acesso retirado</Badge>
                       <button
                         type="button"
                         disabled={rowBusy || !row.membershipActive}
                         onClick={() => void change(row, { status: "ACTIVE" }, "Acesso reativado.")}
                         aria-label={`Reativar o acesso de ${row.name}`}
-                        className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                        className={buttonClass({ variant: "secondary", size: "sm" })}
                       >
                         Reativar
                       </button>

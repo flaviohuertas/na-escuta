@@ -1,9 +1,9 @@
-import { AppLink } from "@/components/ui/AppLink";
 import { crmErrorView } from "@/components/crm/CrmParts";
 import { ProposalForm } from "@/components/crm/ProposalForm";
 import { requireSession } from "@/lib/auth/require-session";
 import { explainBlockedProposalAction } from "@/lib/domain/proposal";
 import { getProposal } from "@/server/crm/proposal.service";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 /** Editar o rascunho da proposta. Só rascunho: a proposta enviada ganha uma nova versão. Ao vivo; sem cache do Service Worker. */
 export default async function EditProposalPage({ params }: { params: Promise<{ proposalId: string }> }) {
@@ -21,17 +21,15 @@ export default async function EditProposalPage({ params }: { params: Promise<{ p
   const blocked = explainBlockedProposalAction("EDIT", context);
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <AppLink href={back} className="text-sm text-slate-600 hover:text-slate-900">
-        ← Proposta v{proposal.number}
-      </AppLink>
-      <h1 className="mt-2 text-2xl font-semibold text-slate-900">Editar proposta v{proposal.number}</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        {opportunity.title} · {client.name}
-      </p>
+    <div className="max-w-3xl">
+      <PageHeader
+        back={{ href: back, label: `Proposta v${proposal.number}` }}
+        title={`Editar proposta v${proposal.number}`}
+        description={`${opportunity.title} · ${client.name}`}
+      />
 
       {blocked ? (
-        <p role="status" className="mt-4 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">
+        <p role="status" className="mt-4 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700">
           {blocked}
         </p>
       ) : (

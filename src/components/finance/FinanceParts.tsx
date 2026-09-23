@@ -1,6 +1,12 @@
 import { notFound } from "next/navigation";
 import { VoidExpenseButton } from "@/components/finance/VoidExpenseButton";
 import { AppLink } from "@/components/ui/AppLink";
+import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { buttonClass } from "@/components/ui/Button";
+import { cardClass } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { NoValue, Stat, type StatTone } from "@/components/ui/Stat";
 import { categoryLabel, formatBps, type Margin, type RevenueReference } from "@/lib/domain/budget";
 import { formatBRL } from "@/lib/domain/crm";
 import { COMPARISON_STATUS_LABEL, formatExpenseDate, type BudgetComparison, type ComparisonStatus } from "@/lib/domain/finance";
@@ -11,14 +17,11 @@ import { AdminActionError } from "@/server/errors";
 /** Quem não é do financeiro (ou não tem empresa) vê isto, não uma página de erro. */
 export function FinanceForbidden({ message }: { message: string }) {
   return (
-    <div className="mx-auto max-w-xl">
-      <h1 className="text-2xl font-semibold text-slate-900">Financeiro</h1>
-      <div className="mt-4 rounded-md bg-slate-100 px-4 py-3 text-sm text-slate-700">
-        <p>{message}</p>
-        <AppLink href="/eventos" className="mt-3 inline-block font-medium text-brand-700 hover:underline">
-          Voltar aos eventos
-        </AppLink>
-      </div>
+    <div className="max-w-xl">
+      <PageHeader title="Financeiro" description={message} />
+      <AppLink href="/eventos" className={buttonClass({ variant: "secondary", className: "mt-6" })}>
+        Voltar aos eventos
+      </AppLink>
     </div>
   );
 }
@@ -32,31 +35,36 @@ export function financeErrorView(err: unknown): React.ReactElement {
   throw err;
 }
 
-const STATUS_STYLE: Record<ComparisonStatus, string> = {
-  OVER: "bg-red-100 text-red-900",
-  WITHIN: "bg-emerald-100 text-emerald-900",
-  UNPLANNED: "bg-amber-100 text-amber-900",
+const STATUS_TONE: Record<ComparisonStatus, BadgeTone> = {
+  OVER: "danger",
+  WITHIN: "success",
+  UNPLANNED: "warning",
 };
 
 export function ComparisonBadge({ status }: { status: ComparisonStatus }) {
-  return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[status]}`}>{COMPARISON_STATUS_LABEL[status]}</span>;
+  return <Badge tone={STATUS_TONE[status]}>{COMPARISON_STATUS_LABEL[status]}</Badge>;
 }
 
 const signed = (cents: number) => (cents > 0 ? `+${formatBRL(cents)}` : formatBRL(cents));
 
-function MarginText({ margin }: { margin: Margin }) {
-  const loss = margin.marginCents < 0;
+/** O valor da margem e o percentual, que acompanha o número em tamanho menor. */
+function MarginValue({ margin }: { margin: Margin }) {
   return (
-    <span className={loss ? "text-red-700" : "text-emerald-800"}>
+    <>
       {formatBRL(margin.marginCents)}
-      {margin.marginBps !== null && <span className="ml-1 text-xs font-medium">({formatBps(margin.marginBps)})</span>}
-    </span>
+      {margin.marginBps !== null && <span className="ml-1.5 font-sans text-sm font-semibold">({formatBps(margin.marginBps)})</span>}
+    </>
   );
 }
 
+const marginTone = (margin: Margin | null): StatTone => (!margin ? "neutral" : margin.marginCents < 0 ? "danger" : "success");
+
+const NOTE = "mt-0.5 text-xs text-slate-500";
+
 /**
- * O resumo do evento: receita (dizendo de onde veio), custo previsto, custo lançado e as duas
- * margens. A margem "até agora" é parcial enquanto o evento ainda gasta — a tela diz isso.
+ * O resumo do evento. Em destaque, o que se acompanha durante o evento: a margem até agora e o custo
+ * lançado. Embaixo, as referências: receita (dizendo de onde veio), custo previsto e margem prevista.
+ * A margem "até agora" é parcial enquanto o evento ainda gasta, e a tela diz isso.
  */
 export function FinanceSummary({
   comparison,
@@ -70,66 +78,90 @@ export function FinanceSummary({
   realizedMargin: Margin | null;
 }) {
   return (
-    <dl className="grid gap-x-6 gap-y-4 rounded-lg border border-slate-200 bg-white p-4 text-sm sm:grid-cols-2 lg:grid-cols-5" data-testid="finance-summary">
-      <div>
-        <dt className="text-xs uppercase tracking-wide text-slate-500">Receita de referência</dt>
-        <dd className="text-base font-semibold tabular-nums text-slate-900" data-testid="finance-revenue">
-          {revenue ? formatBRL(revenue.cents) : "—"}
-        </dd>
-        <dd className="text-xs text-slate-500" data-testid="finance-revenue-source">
-          {revenue ? revenue.label : "Evento sem oportunidade de origem."}
-        </dd>
-      </div>
-      <div>
-        <dt className="text-xs uppercase tracking-wide text-slate-500">Custo previsto</dt>
-        <dd className="text-base font-semibold tabular-nums text-slate-900" data-testid="finance-planned">
-          {comparison.hasBudget ? formatBRL(comparison.plannedTotalCents) : "—"}
-        </dd>
-        {!comparison.hasBudget && <dd className="text-xs text-slate-500">Sem orçamento.</dd>}
-      </div>
-      <div>
-        <dt className="text-xs uppercase tracking-wide text-slate-500">Custo lançado</dt>
-        <dd className="text-base font-semibold tabular-nums text-slate-900" data-testid="finance-realized">
-          {formatBRL(comparison.realizedTotalCents)}
-        </dd>
-        {comparison.hasBudget && comparison.consumedTotalBps !== null && (
-          <dd className="text-xs text-slate-500" data-testid="finance-consumed">
-            {formatBps(comparison.consumedTotalBps)} do previsto
+    <dl className={cardClass({ className: "grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-6" })} data-testid="finance-summary">
+      <Stat
+        className="lg:col-span-3"
+        size="lg"
+        label="Margem até agora"
+        tone={marginTone(realizedMargin)}
+        valueTestId="finance-realized-margin"
+        value={realizedMargin ? <MarginValue margin={realizedMargin} /> : <NoValue label="sem receita de referência" />}
+        note={
+          <>
+            {realizedMargin && realizedMargin.marginCents < 0 && (
+              <dd role="status" className="mt-0.5 text-sm font-medium text-red-700" data-testid="finance-loss">
+                Prejuízo: o custo lançado passa da receita.
+              </dd>
+            )}
+            {realizedMargin && <dd className={NOTE}>Parcial: só o custo já lançado.</dd>}
+          </>
+        }
+      />
+      <Stat
+        className="lg:col-span-3"
+        size="lg"
+        label="Custo lançado"
+        valueTestId="finance-realized"
+        value={formatBRL(comparison.realizedTotalCents)}
+        note={
+          comparison.hasBudget &&
+          comparison.consumedTotalBps !== null && (
+            <dd className={NOTE} data-testid="finance-consumed">
+              {formatBps(comparison.consumedTotalBps)} do previsto
+            </dd>
+          )
+        }
+      />
+      <Stat
+        className="border-t border-line pt-4 lg:col-span-2"
+        size="sm"
+        label="Receita de referência"
+        valueTestId="finance-revenue"
+        value={revenue ? formatBRL(revenue.cents) : <NoValue label="sem receita" />}
+        note={
+          <dd className={NOTE} data-testid="finance-revenue-source">
+            {revenue ? revenue.label : "Evento sem oportunidade de origem."}
           </dd>
-        )}
-      </div>
-      <div>
-        <dt className="text-xs uppercase tracking-wide text-slate-500">Margem prevista</dt>
-        <dd className="text-base font-semibold tabular-nums" data-testid="finance-planned-margin">
-          {plannedMargin ? <MarginText margin={plannedMargin} /> : <span className="text-sm font-normal text-slate-500">—</span>}
-        </dd>
-      </div>
-      <div>
-        <dt className="text-xs uppercase tracking-wide text-slate-500">Margem até agora</dt>
-        <dd className="text-base font-semibold tabular-nums" data-testid="finance-realized-margin">
-          {realizedMargin ? <MarginText margin={realizedMargin} /> : <span className="text-sm font-normal text-slate-500">—</span>}
-        </dd>
-        {realizedMargin && realizedMargin.marginCents < 0 && (
-          <dd role="status" className="text-xs font-medium text-red-700" data-testid="finance-loss">
-            Prejuízo: o custo lançado passa da receita.
-          </dd>
-        )}
-        {realizedMargin && <dd className="text-xs text-slate-500">Parcial: só o custo já lançado.</dd>}
-      </div>
+        }
+      />
+      <Stat
+        className="border-t border-line pt-4 lg:col-span-2"
+        size="sm"
+        label="Custo previsto"
+        valueTestId="finance-planned"
+        value={comparison.hasBudget ? formatBRL(comparison.plannedTotalCents) : <NoValue label="sem orçamento" />}
+        note={!comparison.hasBudget && <dd className={NOTE}>Sem orçamento.</dd>}
+      />
+      <Stat
+        className="border-t border-line pt-4 lg:col-span-2"
+        size="sm"
+        label="Margem prevista"
+        tone={marginTone(plannedMargin)}
+        valueTestId="finance-planned-margin"
+        value={plannedMargin ? <MarginValue margin={plannedMargin} /> : <NoValue label="sem previsão" />}
+      />
     </dl>
   );
 }
 
 /** Previsto × realizado por categoria, com o que estourou, o que coube e o que foi gasto sem previsão. */
 export function ComparisonTable({ comparison }: { comparison: BudgetComparison }) {
-  if (comparison.rows.length === 0) return <p className="mt-2 text-sm text-slate-500">Nada previsto nem lançado ainda.</p>;
+  if (comparison.rows.length === 0) {
+    return (
+      <div className="mt-2">
+        <EmptyState hint="Monte o orçamento da oportunidade ou lance o primeiro custo abaixo.">Nada previsto nem lançado ainda.</EmptyState>
+      </div>
+    );
+  }
 
   return (
-    <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200 bg-white" role="region" aria-label="Comparação entre previsto e lançado" tabIndex={0}>
+    // `relative`: o texto `sr-only` do `NoValue` é posicionado em absoluto; sem um ancestral posicionado ele
+    // escapa da rolagem da tabela e alarga a página inteira no celular.
+    <div className="relative mt-2 overflow-x-auto rounded-xl border border-line bg-white" role="region" aria-label="Comparação entre previsto e lançado" tabIndex={0}>
       <table className="w-full text-left text-sm" data-testid="comparison-table">
         <caption className="sr-only">Previsto e realizado por categoria</caption>
         <thead>
-          <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+          <tr className="border-b border-line text-xs uppercase tracking-wide text-slate-500">
             <th scope="col" className="px-4 py-2 font-medium">
               Categoria
             </th>
@@ -149,19 +181,19 @@ export function ComparisonTable({ comparison }: { comparison: BudgetComparison }
         </thead>
         <tbody>
           {comparison.rows.map((row) => (
-            <tr key={row.category} className="border-b border-slate-50" data-testid={`comparison-${row.category}`}>
+            <tr key={row.category} className="border-b border-slate-100" data-testid={`comparison-${row.category}`}>
               <th scope="row" className="px-4 py-2 text-left font-medium text-slate-900">
                 {categoryLabel(row.category)}
               </th>
               <td className="px-3 py-2 text-right tabular-nums" data-testid={`planned-${row.category}`}>
-                {row.hasPlan ? formatBRL(row.plannedCents) : "—"}
+                {row.hasPlan ? formatBRL(row.plannedCents) : <NoValue label="sem previsão" />}
               </td>
               <td className="px-3 py-2 text-right tabular-nums" data-testid={`realized-${row.category}`}>
                 {formatBRL(row.realizedCents)}
                 {row.consumedBps !== null && <span className="ml-1 text-xs text-slate-500">({formatBps(row.consumedBps)})</span>}
               </td>
               <td className={`px-3 py-2 text-right tabular-nums ${row.status === "OVER" ? "font-medium text-red-700" : "text-slate-700"}`} data-testid={`variance-${row.category}`}>
-                {row.hasPlan ? signed(row.varianceCents) : "—"}
+                {row.hasPlan ? signed(row.varianceCents) : <NoValue label="sem previsão" />}
               </td>
               <td className="px-4 py-2">
                 <ComparisonBadge status={row.status} />
@@ -174,12 +206,12 @@ export function ComparisonTable({ comparison }: { comparison: BudgetComparison }
             <th scope="row" className="px-4 py-2 text-left">
               Total
             </th>
-            <td className="px-3 py-2 text-right tabular-nums">{comparison.hasBudget ? formatBRL(comparison.plannedTotalCents) : "—"}</td>
+            <td className="px-3 py-2 text-right tabular-nums">{comparison.hasBudget ? formatBRL(comparison.plannedTotalCents) : <NoValue label="sem orçamento" />}</td>
             <td className="px-3 py-2 text-right tabular-nums" data-testid="comparison-realized-total">
               {formatBRL(comparison.realizedTotalCents)}
             </td>
             <td className={`px-3 py-2 text-right tabular-nums ${comparison.varianceTotalCents > 0 && comparison.hasBudget ? "text-red-700" : ""}`}>
-              {comparison.hasBudget ? signed(comparison.varianceTotalCents) : "—"}
+              {comparison.hasBudget ? signed(comparison.varianceTotalCents) : <NoValue label="sem orçamento" />}
             </td>
             <td />
           </tr>
@@ -206,10 +238,16 @@ export interface ExpenseRow {
 
 /** Os lançamentos, do dia mais novo ao mais antigo. Os estornados continuam aqui, riscados, com o motivo. */
 export function ExpenseList({ eventId, expenses }: { eventId: string; expenses: ExpenseRow[] }) {
-  if (expenses.length === 0) return <p className="mt-2 text-sm text-slate-500">Nenhum custo lançado ainda.</p>;
+  if (expenses.length === 0) {
+    return (
+      <div className="mt-2">
+        <EmptyState hint="Cada custo lançado aqui entra no previsto × lançado acima.">Nenhum custo lançado ainda.</EmptyState>
+      </div>
+    );
+  }
 
   return (
-    <ul className="mt-2 divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white" data-testid="expense-list">
+    <ul className="mt-2 divide-y divide-slate-100 rounded-xl border border-line bg-white" data-testid="expense-list">
       {expenses.map((expense) => {
         const voided = expense.voidedAt !== null;
         return (
@@ -234,7 +272,7 @@ export function ExpenseList({ eventId, expenses }: { eventId: string; expenses: 
               {expense.notes && <p className="mt-0.5 text-xs text-slate-500">{expense.notes}</p>}
               {voided && expense.voidedAt && (
                 <p className="mt-1 text-xs font-medium text-red-700" data-testid="void-note">
-                  Estornado em {formatDateTimeBR(expense.voidedAt.toISOString())} — {expense.voidReason}
+                  Estornado em {formatDateTimeBR(expense.voidedAt.toISOString())}. Motivo: {expense.voidReason}
                 </p>
               )}
             </div>
@@ -243,8 +281,8 @@ export function ExpenseList({ eventId, expenses }: { eventId: string; expenses: 
                 {formatBRL(expense.amountCents)}
               </span>
               {!voided && (
-                <span className="flex items-center gap-2">
-                  <AppLink href={`/financeiro/eventos/${eventId}/lancamentos/${expense.id}/editar`} className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50" aria-label={`Editar ${expense.description}`}>
+                <span className="flex items-center gap-1">
+                  <AppLink href={`/financeiro/eventos/${eventId}/lancamentos/${expense.id}/editar`} className={buttonClass({ variant: "ghost", size: "sm" })} aria-label={`Editar ${expense.description}`}>
                     Editar
                   </AppLink>
                   <VoidExpenseButton expenseId={expense.id} version={expense.version} description={expense.description} />

@@ -1,22 +1,24 @@
 import { AppLink } from "@/components/ui/AppLink";
+import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { formatBRL, formatDocument } from "@/lib/domain/crm";
 import { PROPOSAL_STATUS_LABEL, computeTotals, formatDateOnlyBR, type ProposalStatusName } from "@/lib/domain/proposal";
 import type { ProposalRow } from "@/server/crm/proposal.service";
 import { formatDateTimeBR } from "@/lib/domain/approval-format";
 
-const STATUS_STYLE: Record<ProposalStatusName, string> = {
-  DRAFT: "bg-slate-100 text-slate-800",
-  SENT: "bg-indigo-100 text-indigo-900",
-  ACCEPTED: "bg-emerald-100 text-emerald-900",
-  REJECTED: "bg-red-100 text-red-900",
-  SUPERSEDED: "bg-slate-200 text-slate-600",
+// A enviada é a proposta viva, esperando o cliente: leva a cor da marca. Rascunho e substituída, neutras.
+const STATUS_TONE: Record<ProposalStatusName, BadgeTone> = {
+  DRAFT: "neutral",
+  SENT: "brand",
+  ACCEPTED: "success",
+  REJECTED: "danger",
+  SUPERSEDED: "neutral",
 };
 
 export function ProposalStatusBadge({ status, expired = false }: { status: ProposalStatusName; expired?: boolean }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[status]}`}>{PROPOSAL_STATUS_LABEL[status]}</span>
-      {expired && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">Vencida</span>}
+      <Badge tone={STATUS_TONE[status]}>{PROPOSAL_STATUS_LABEL[status]}</Badge>
+      {expired && <Badge tone="warning">Vencida</Badge>}
     </span>
   );
 }
@@ -29,7 +31,7 @@ export function ProposalVersionList({ rows }: { rows: ProposalRow[] }) {
         <li key={row.id}>
           <AppLink
             href={`/comercial/propostas/${row.id}`}
-            className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:border-brand-300"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-white px-3 py-2 text-sm hover:border-brand-300"
             data-testid="proposal-row"
           >
             <span className="font-medium text-slate-900">Proposta v{row.number}</span>
@@ -70,7 +72,7 @@ export function ProposalDocument({ data }: { data: ProposalDocumentData }) {
   const totals = computeTotals(proposal.items, proposal.discountCents);
 
   return (
-    <article aria-label="Proposta comercial" className="rounded-lg border border-slate-200 bg-white p-5 print:rounded-none print:border-0 print:p-0 sm:p-8">
+    <article aria-label="Proposta comercial" className="rounded-xl border border-line bg-white p-5 print:rounded-none print:border-0 print:p-0 sm:p-8">
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 pb-4">
         <div>
           <p className="text-sm font-medium text-slate-500">{data.companyName}</p>
@@ -91,7 +93,7 @@ export function ProposalDocument({ data }: { data: ProposalDocumentData }) {
         {(client.email || client.phone) && <p>{[client.email, client.phone].filter(Boolean).join(" · ")}</p>}
       </section>
 
-      <div className="mt-5 overflow-x-auto" role="region" aria-label="Itens da proposta" tabIndex={0}>
+      <div className="relative mt-5 overflow-x-auto" role="region" aria-label="Itens da proposta" tabIndex={0}>
         <table className="w-full text-left text-sm">
           <caption className="sr-only">Itens da proposta</caption>
           <thead>

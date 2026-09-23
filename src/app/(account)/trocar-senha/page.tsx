@@ -1,6 +1,7 @@
 import { ChangePasswordForm } from "@/components/account/ChangePasswordForm";
 import { requireSession } from "@/lib/auth/require-session";
 import { prisma } from "@/lib/db/prisma";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default async function ChangePasswordPage() {
   const session = await requireSession();
@@ -11,7 +12,7 @@ export default async function ChangePasswordPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-slate-900">Trocar senha</h1>
+      <PageHeader title="Trocar senha" />
       <ChangePasswordForm forced={Boolean(account?.mustChangePassword)} />
     </div>
   );

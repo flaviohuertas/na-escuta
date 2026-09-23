@@ -6,6 +6,8 @@ import type { EventRoleName } from "@/lib/domain/permissions";
 import { prisma } from "@/lib/db/prisma";
 import { EventForbiddenError, EventNotFoundError } from "@/server/events/event.service";
 import { listEventAccess } from "@/server/events/event-access.service";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { buttonClass } from "@/components/ui/Button";
 
 /**
  * Renderizada no servidor e FORA do cache do Service Worker: quem tem acesso é uma informação
@@ -22,14 +24,11 @@ export default async function EventAccessPage({ params }: { params: Promise<{ ev
     if (err instanceof EventNotFoundError) notFound();
     if (err instanceof EventForbiddenError) {
       return (
-        <div className="mx-auto max-w-3xl">
-          <h1 className="text-2xl font-semibold text-slate-900">Pessoas do evento</h1>
-          <div className="mt-4 rounded-md bg-slate-100 px-4 py-3 text-sm text-slate-700">
-            <p>{err.message}</p>
-            <AppLink href="/eventos" className="mt-3 inline-block font-medium text-brand-700 hover:underline">
-              Voltar aos eventos
-            </AppLink>
-          </div>
+        <div className="max-w-3xl">
+          <PageHeader title="Pessoas do evento" description={err.message} />
+          <AppLink href="/eventos" className={buttonClass({ variant: "secondary", className: "mt-6" })}>
+            Voltar aos eventos
+          </AppLink>
         </div>
       );
     }
@@ -39,12 +38,12 @@ export default async function EventAccessPage({ params }: { params: Promise<{ ev
   const event = await prisma.event.findUniqueOrThrow({ where: { id: eventId }, select: { name: true } });
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-semibold text-slate-900">Pessoas do evento</h1>
-      <p className="mt-1 text-sm text-slate-500">
-        {event.name} — quem pode ver e mexer neste evento. Retirar o acesso vale já no próximo sincronismo
-        de cada aparelho.
-      </p>
+    <div className="max-w-3xl">
+      <PageHeader
+        back={{ href: `/eventos/${eventId}`, label: event.name }}
+        title="Pessoas do evento"
+        description="Quem pode ver e mexer neste evento. Retirar o acesso vale já no próximo sincronismo de cada aparelho."
+      />
       <EventAccessManager
         eventId={eventId}
         rows={data.rows.map((r) => ({

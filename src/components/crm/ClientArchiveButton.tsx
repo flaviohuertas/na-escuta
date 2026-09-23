@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { callApi } from "@/components/admin/api";
+import { buttonClass } from "@/components/ui/Button";
 
 /**
  * Arquivar/reativar um cliente (ele nunca é apagado). Arquivar pede uma confirmação e é recusado
@@ -30,26 +31,26 @@ export function ClientArchiveButton({ clientId, version, archived }: { clientId:
   return (
     <div className="mt-4">
       {error && (
-        <p role="alert" className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="mb-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </p>
       )}
       {!archived && confirming ? (
-        <div className="rounded-md bg-slate-50 p-3 text-sm text-slate-800">
+        <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-800">
           <p>Arquivar este cliente? Ele sai da lista e não recebe novas oportunidades, mas o histórico continua. Dá para reativá-lo depois.</p>
           <div className="mt-2 flex gap-2">
             <button
               type="button"
               onClick={() => void run()}
               disabled={busy}
-              className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-60"
+              className={buttonClass({ size: "sm" })}
             >
               Confirmar arquivamento
             </button>
             <button
               type="button"
               onClick={() => setConfirming(false)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100"
+              className={buttonClass({ variant: "secondary", size: "sm" })}
             >
               Cancelar
             </button>
@@ -60,7 +61,7 @@ export function ClientArchiveButton({ clientId, version, archived }: { clientId:
           type="button"
           onClick={() => (archived ? void run() : setConfirming(true))}
           disabled={busy}
-          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+          className={buttonClass({ variant: "secondary", size: "sm" })}
         >
           {archived ? "Reativar cliente" : "Arquivar cliente"}
         </button>

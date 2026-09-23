@@ -3,6 +3,7 @@ import { ClientForm } from "@/components/crm/ClientForm";
 import { requireSession } from "@/lib/auth/require-session";
 import { canManageCrm } from "@/lib/domain/permissions";
 import { getActiveCompanyRole } from "@/server/auth/membership";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 /** Renderizada no servidor e SEM cache do Service Worker; quem pode cadastrar é revalidado a cada abertura. */
 export default async function NewClientPage() {
@@ -11,8 +12,8 @@ export default async function NewClientPage() {
   if (!role || !canManageCrm(role)) return <CrmForbidden message="Você não tem acesso ao comercial desta empresa." />;
 
   return (
-    <div className="mx-auto max-w-xl">
-      <h1 className="text-2xl font-semibold text-slate-900">Novo cliente</h1>
+    <div className="max-w-xl">
+      <PageHeader back={{ href: "/comercial/clientes", label: "Clientes" }} title="Novo cliente" />
       <ClientForm mode="create" />
     </div>
   );

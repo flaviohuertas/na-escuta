@@ -1,33 +1,34 @@
 import { notFound } from "next/navigation";
 import { AppLink } from "@/components/ui/AppLink";
+import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { buttonClass } from "@/components/ui/Button";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { STAGE_LABEL, formatBRL, formatDateBR, type OpportunityStageName } from "@/lib/domain/crm";
 import { AdminActionError } from "@/server/errors";
 import type { OpportunityCard, PipelineColumn } from "@/server/crm/opportunity.service";
 
-const STAGE_STYLE: Record<OpportunityStageName, string> = {
-  NEW: "bg-slate-100 text-slate-800",
-  CONTACTED: "bg-sky-100 text-sky-900",
-  PROPOSAL_SENT: "bg-indigo-100 text-indigo-900",
-  NEGOTIATION: "bg-amber-100 text-amber-900",
-  WON: "bg-emerald-100 text-emerald-900",
-  LOST: "bg-red-100 text-red-900",
+// Cor só no desfecho: as etapas em andamento já se distinguem pelo nome (e pela coluna do funil).
+const STAGE_TONE: Record<OpportunityStageName, BadgeTone> = {
+  NEW: "neutral",
+  CONTACTED: "neutral",
+  PROPOSAL_SENT: "neutral",
+  NEGOTIATION: "neutral",
+  WON: "success",
+  LOST: "danger",
 };
 
 export function StageBadge({ stage }: { stage: OpportunityStageName }) {
-  return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STAGE_STYLE[stage]}`}>{STAGE_LABEL[stage]}</span>;
+  return <Badge tone={STAGE_TONE[stage]}>{STAGE_LABEL[stage]}</Badge>;
 }
 
 /** Quem não é do comercial (ou não tem empresa) vê isto, não uma página de erro. */
 export function CrmForbidden({ message }: { message: string }) {
   return (
-    <div className="mx-auto max-w-xl">
-      <h1 className="text-2xl font-semibold text-slate-900">Comercial</h1>
-      <div className="mt-4 rounded-md bg-slate-100 px-4 py-3 text-sm text-slate-700">
-        <p>{message}</p>
-        <AppLink href="/eventos" className="mt-3 inline-block font-medium text-brand-700 hover:underline">
-          Voltar aos eventos
-        </AppLink>
-      </div>
+    <div className="max-w-xl">
+      <PageHeader title="Comercial" description={message} />
+      <AppLink href="/eventos" className={buttonClass({ variant: "secondary", className: "mt-6" })}>
+        Voltar aos eventos
+      </AppLink>
     </div>
   );
 }
@@ -49,7 +50,7 @@ export function OpportunityCardLink({ card }: { card: OpportunityCard }) {
   return (
     <AppLink
       href={`/comercial/oportunidades/${card.id}`}
-      className="block rounded-md border border-slate-200 bg-white p-3 text-sm shadow-sm hover:border-brand-300 hover:shadow"
+      className="block rounded-xl border border-line bg-white p-3 text-sm transition-colors hover:border-brand-300"
       data-testid="opportunity-card"
     >
       <span className="block font-medium text-slate-900">{card.title}</span>

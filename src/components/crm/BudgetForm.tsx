@@ -157,13 +157,13 @@ export function BudgetForm({
   return (
     <form onSubmit={onSubmit} noValidate className="mt-6 space-y-5" aria-label="Dados do orçamento">
       {error && (
-        <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           <p>{error}</p>
           {outdated && (
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="mt-2 rounded-md border border-red-300 bg-white px-3 py-1 text-sm font-medium text-red-700 hover:bg-red-100"
+              className={buttonClass({ variant: "secondary", size: "sm", className: "mt-2" })}
             >
               Carregar os dados atuais
             </button>
@@ -177,7 +177,7 @@ export function BudgetForm({
           {rows.map((row, index) => {
             const n = index + 1;
             return (
-              <li key={row.key} className="rounded-md border border-slate-200 bg-white p-3" data-testid="budget-form-row">
+              <li key={row.key} className="rounded-xl border border-line bg-white p-3" data-testid="budget-form-row">
                 <div className="grid gap-3 sm:grid-cols-[12rem_minmax(0,1fr)]">
                   <label className="block">
                     <span aria-hidden="true" className="text-xs text-slate-500">
@@ -242,7 +242,7 @@ export function BudgetForm({
                     onClick={() => setRows((current) => current.filter((r) => r.key !== row.key))}
                     disabled={rows.length === 1}
                     aria-label={`Remover item ${n}`}
-                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                    className={buttonClass({ variant: "secondary", size: "sm" })}
                   >
                     Remover
                   </button>
@@ -265,7 +265,7 @@ export function BudgetForm({
           type="button"
           onClick={() => setRows((current) => [...current, newRow()])}
           disabled={rows.length >= MAX_BUDGET_ITEMS}
-          className="mt-3 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+          className={buttonClass({ variant: "secondary", size: "sm", className: "mt-3" })}
         >
           Adicionar item
         </button>
@@ -275,7 +275,7 @@ export function BudgetForm({
         <textarea id="budget-notes" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={MAX_NOTES} rows={4} className={inputClass} />
       </Field>
 
-      <div className="ml-auto w-full max-w-sm space-y-1 rounded-md bg-slate-50 p-3 text-sm" aria-label="Totais">
+      <div className="ml-auto w-full max-w-sm space-y-1 rounded-lg bg-slate-50 p-3 text-sm" aria-label="Totais">
         {live.totals.byCategory.map((group) => (
           <div key={group.category} className="flex justify-between text-slate-600">
             <span>{categoryLabel(group.category)}</span>
@@ -294,7 +294,7 @@ export function BudgetForm({
           <p className={`pt-1 text-xs ${live.margin.marginCents < 0 ? "font-medium text-red-700" : "text-slate-600"}`} data-testid="form-margin">
             Margem prevista sobre {revenue.label.toLowerCase()}: {formatBRL(live.margin.marginCents)}
             {live.margin.marginBps !== null && ` (${formatBps(live.margin.marginBps)})`}
-            {live.margin.marginCents < 0 && " — prejuízo"}
+            {live.margin.marginCents < 0 && ", prejuízo"}
           </p>
         )}
       </div>

@@ -8,7 +8,7 @@ import type { FieldChangeView } from "@/lib/domain/approval";
  */
 export function ProposalChanges({ changes, showConflicts }: { changes: FieldChangeView[]; showConflicts: boolean }) {
   return (
-    <ul className="mt-2 divide-y divide-slate-100 rounded-md border border-slate-200 bg-white text-sm">
+    <ul className="mt-2 divide-y divide-slate-100 rounded-xl border border-line bg-white text-sm">
       {changes.map((change) => {
         const conflict = showConflicts && change.conflict;
         return (

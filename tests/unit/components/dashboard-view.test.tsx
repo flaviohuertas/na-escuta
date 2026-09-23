@@ -28,6 +28,17 @@ describe("DashboardView", () => {
     expect(screen.queryByText("Tarefas atrasadas")).toBeNull();
   });
 
+  it("sem nada a resolver, os alertas viram uma linha 'Tudo em dia' em vez de três zeros", () => {
+    const portfolio = buildPortfolio([{ event: event({ id: "e1", name: "Festival Demo" }), role: "MANAGER", metrics: emptyMetrics() }], NOW);
+    render(<DashboardView portfolio={portfolio} agenda={[]} generatedAt={NOW} />);
+
+    expect(screen.getByText("Tudo em dia")).toBeTruthy();
+    expect(screen.queryByText("Tarefas atrasadas")).toBeNull();
+    expect(screen.queryByText("Ocorrências críticas")).toBeNull();
+    // Os números de contexto continuam.
+    expect(screen.getByText("Próximos 30 dias")).toBeTruthy();
+  });
+
   it("renderiza KPIs, agenda e portfólio, explicando os motivos da saúde do evento", () => {
     const festival = event({ id: "e1", name: "Festival Demo" });
     const encerrado = event({

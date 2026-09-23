@@ -6,11 +6,14 @@ import { cloneElement, Fragment, isValidElement, type ReactElement, type ReactNo
  * é o contorno global do `globals.css`. Tamanho de 16 px: abaixo disso o Safari do iPhone dá zoom na tela.
  */
 export const inputClass =
-  "mt-1 block w-full rounded-lg border border-slate-400 bg-white px-3 py-2 text-base text-ink placeholder:text-slate-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500";
+  "mt-1 block min-h-11 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 text-base text-ink placeholder:text-slate-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500";
 
-/** Seleção compacta de tabelas de gestão (papel da pessoa, acesso ao evento): mesma borda, altura menor. */
+/**
+ * Seleção compacta de tabelas de gestão (papel da pessoa, acesso ao evento): mesma borda, altura menor
+ * no desktop. No celular volta aos 44 px de toque (como o botão `sm`).
+ */
 export const compactSelectClass =
-  "rounded-lg border border-slate-400 bg-white px-2 py-1.5 text-sm text-ink disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500";
+  "min-h-11 rounded-lg border border-slate-400 bg-white px-2 py-1.5 text-base text-ink disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:min-h-0 sm:text-sm";
 
 interface ControlProps {
   id?: string;

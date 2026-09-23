@@ -72,7 +72,7 @@ export function ChecklistsScreen({
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="max-w-2xl">
       <PageHeader title="Checklists" back={{ href: `/eventos/${eventId}`, label: "Voltar ao evento" }} />
 
       <Card className="mt-4">

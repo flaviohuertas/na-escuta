@@ -2,6 +2,9 @@
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { getDb } from "@/lib/db/dexie/db";
+import { buttonClass } from "@/components/ui/Button";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState, LoadingLine } from "@/components/ui/EmptyState";
 
 /**
  * Tela mostrada pelo Service Worker quando não há rede e a página pedida não está guardada
@@ -25,29 +28,29 @@ export function OfflineFallback() {
 
   return (
     <main className="mx-auto max-w-xl p-6">
-      <h1 className="text-xl font-semibold text-slate-900">Esta tela precisa de internet</h1>
-      <p className="mt-2 text-sm text-slate-600">
-        Você está sem conexão e esta página não está guardada neste aparelho. Os eventos que você
-        preparou antes continuam funcionando normalmente.
-      </p>
+      <PageHeader
+        title="Esta tela precisa de internet"
+        description="Você está sem conexão e esta página não está guardada neste aparelho. Os eventos que você preparou antes continuam funcionando normalmente."
+      />
 
-      <h2 className="mt-6 text-sm font-semibold uppercase tracking-wide text-slate-500">
-        Disponíveis offline neste aparelho
-      </h2>
+      <h2 className="mt-6 text-lg font-semibold text-slate-900">Disponíveis offline neste aparelho</h2>
       {events === undefined ? (
-        <p className="mt-2 text-sm text-slate-500">Carregando…</p>
+        <div className="mt-2">
+          <LoadingLine />
+        </div>
       ) : events.length === 0 ? (
-        <p className="mt-2 text-sm text-slate-600">
-          Nenhum evento foi preparado neste aparelho. Quando houver conexão, abra um evento e use
-          “Preparar evento para uso offline”.
-        </p>
+        <div className="mt-2">
+          <EmptyState hint="Quando houver conexão, abra um evento e use “Preparar evento para uso offline”.">
+            Nenhum evento foi preparado neste aparelho.
+          </EmptyState>
+        </div>
       ) : (
         <ul className="mt-2 space-y-2">
           {events.map((event) => (
             <li key={event.id}>
               <a
                 href={`/eventos/${event.id}`}
-                className="block rounded-lg border border-slate-200 bg-white p-3 font-medium text-slate-900 hover:border-brand-300"
+                className="block rounded-xl border border-line bg-white p-4 font-semibold text-slate-900 transition-colors hover:border-brand-300"
               >
                 {event.name}
               </a>
@@ -59,7 +62,7 @@ export function OfflineFallback() {
       <button
         type="button"
         onClick={() => window.location.reload()}
-        className="mt-6 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        className={buttonClass({ variant: "secondary", className: "mt-6" })}
       >
         Tentar novamente
       </button>

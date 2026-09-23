@@ -72,6 +72,18 @@ const PAIRS: Array<[string, string, number, string]> = [
   ["status-offline", "white", TEXT, "offline"],
   ["status-synced", "white", TEXT, "evento preparado, exportado"],
   ["status-synced", "paper", TEXT, "idem, sobre o papel"],
+  // Selos e números de situação (Badge, Stat): verde-mar (emerald remapeado) e âmbar da referência
+  ["emerald-900", "emerald-100", TEXT, "selo de sucesso (Dentro do previsto, Aceita, Em dia)"],
+  ["emerald-900", "emerald-50", TEXT, "aviso de sucesso e 'Tudo em dia' do Painel"],
+  ["emerald-800", "white", TEXT, "margem positiva num cartão"],
+  ["emerald-800", "paper", TEXT, "margem positiva sobre o papel"],
+  ["emerald-800", "emerald-50", TEXT, "aviso de sucesso (texto 800)"],
+  ["amber-900", "amber-100", TEXT, "selo de atenção (Sem previsão, Vencida)"],
+  ["amber-900", "amber-50", TEXT, "aviso de atenção"],
+  ["amber-800", "amber-50", TEXT, "número de alerta no cartão âmbar do Painel"],
+  ["amber-800", "white", TEXT, "número de alerta em cartão branco"],
+  ["amber-800", "paper", TEXT, "aviso curto sobre o papel (lista truncada)"],
+  ["slate-700", "slate-100", TEXT, "selo neutro"],
   // Componentes de interface (WCAG 1.4.11, 3:1): onde o campo começa e onde está o foco
   ["slate-400", "white", GRAPHIC, "borda dos campos de formulário"],
   ["slate-400", "paper", GRAPHIC, "borda dos campos sobre o papel"],

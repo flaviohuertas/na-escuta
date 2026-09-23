@@ -39,6 +39,35 @@
   --color-slate-900: #16181d;
   --color-slate-950: #0e0f12;
 
+  /* Verde-mar (#0F6B62, a cor de "deu certo" da referência). A escala `emerald` foi REMAPEADA para ela,
+     como a `slate`: todo selo e texto de sucesso (`bg-emerald-100 text-emerald-900`…) já sai no tom da
+     marca, sem o verde-menta padrão do Tailwind. */
+  --color-emerald-50: #edf7f5;
+  --color-emerald-100: #d6eee9;
+  --color-emerald-200: #b0ddd4;
+  --color-emerald-300: #7fc4b8;
+  --color-emerald-400: #4aa698;
+  --color-emerald-500: #23897c;
+  --color-emerald-600: #14776c;
+  --color-emerald-700: #0f6b62;
+  --color-emerald-800: #0c5750;
+  --color-emerald-900: #0a443f;
+  --color-emerald-950: #052a27;
+
+  /* Âmbar (atenção). É o do Tailwind, com o 100 trocado pelo âmbar da referência (#FDEFC7); a escala
+     inteira fica declarada aqui para o teste de contraste medir os pares. */
+  --color-amber-50: #fffbeb;
+  --color-amber-100: #fdefc7;
+  --color-amber-200: #fde68a;
+  --color-amber-300: #fcd34d;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+  --color-amber-700: #b45309;
+  --color-amber-800: #92400e;
+  --color-amber-900: #78350f;
+  --color-amber-950: #451a03;
+
   /* Superfícies e linhas. `ink-muted` é o cinza legível SOBRE a tinta (contraste 6,9:1). */
   --color-ink: #16181d;
   --color-ink-soft: #2b2e36;
@@ -48,10 +77,12 @@
 
   /* Estados também aparecem como TEXTO (pendentes, "preparado"), por isso passam de 4,5:1 sobre
      branco e sobre o papel — o laranja e o verde "de semáforo" comuns não passavam (3,2:1 e 3,3:1). */
-  --color-status-offline: #6b7280;
+  /* Offline e sincronizado seguem a paleta: cinza QUENTE (o cinza frio do Tailwind destoava do papel)
+     e o verde-mar. Sincronizando fica azul de propósito: é passageiro e precisa se distinguir dos dois. */
+  --color-status-offline: #5f584b;
   --color-status-pending: #a34f07;
   --color-status-syncing: #2563eb;
-  --color-status-synced: #166534;
+  --color-status-synced: #0f6b62;
   --color-status-conflict: #dc2626;
   --color-status-error: #b91c1c;
 }

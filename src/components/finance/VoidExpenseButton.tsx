@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/Button";
 import { inputClass } from "@/components/ui/Field";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -43,19 +44,14 @@ export function VoidExpenseButton({ expenseId, version, description }: { expense
 
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label={`Estornar ${description}`}
-        className="rounded-md border border-red-300 bg-white px-2 py-1 text-xs font-medium text-red-800 hover:bg-red-50"
-      >
+      <Button variant="ghost-danger" size="sm" onClick={() => setOpen(true)} aria-label={`Estornar ${description}`}>
         Estornar
-      </button>
+      </Button>
     );
   }
 
   return (
-    <div className="mt-2 w-full rounded-md bg-slate-50 p-3 text-left" data-testid="void-panel">
+    <div className="mt-2 w-full rounded-lg bg-slate-50 p-3 text-left" data-testid="void-panel">
       <p className="text-sm text-slate-700">O lançamento continua na lista, riscado, e sai dos totais. Isto não apaga nada.</p>
       <label htmlFor={`void-reason-${expenseId}`} className="mt-2 block text-sm font-medium text-slate-700">
         Por que estornar {description}?
@@ -68,25 +64,21 @@ export function VoidExpenseButton({ expenseId, version, description }: { expense
         rows={2}
         className={inputClass}
       />
-      <div className="mt-2 flex items-center gap-2">
-        <button type="button" onClick={() => void confirm()} disabled={busy} className="rounded-md bg-red-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-60">
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <Button variant="danger" size="sm" onClick={() => void confirm()} disabled={busy}>
           {busy ? "Estornando…" : "Confirmar estorno"}
-        </button>
-        <button type="button" onClick={() => setOpen(false)} disabled={busy} className="text-sm text-slate-600 hover:text-slate-900">
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => setOpen(false)} disabled={busy}>
           Cancelar
-        </button>
+        </Button>
       </div>
       {error && (
-        <div role="alert" className="mt-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div role="alert" className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           <p>{error}</p>
           {outdated && (
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="mt-2 rounded-md border border-red-300 bg-white px-3 py-1 text-sm font-medium text-red-700 hover:bg-red-100"
-            >
+            <Button variant="secondary" size="sm" className="mt-2" onClick={() => window.location.reload()}>
               Carregar os dados atuais
-            </button>
+            </Button>
           )}
         </div>
       )}

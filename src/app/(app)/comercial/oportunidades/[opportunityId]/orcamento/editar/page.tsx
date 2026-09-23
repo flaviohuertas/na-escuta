@@ -1,9 +1,9 @@
-import { AppLink } from "@/components/ui/AppLink";
 import { BudgetForm } from "@/components/crm/BudgetForm";
 import { crmErrorView } from "@/components/crm/CrmParts";
 import { requireSession } from "@/lib/auth/require-session";
 import { getBudgetSummary } from "@/server/crm/budget.service";
 import { listSupplierOptions } from "@/server/suppliers/supplier.service";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 /** Montar ou editar o orçamento interno. Ao vivo; sem cache do Service Worker. */
 export default async function EditBudgetPage({ params }: { params: Promise<{ opportunityId: string }> }) {
@@ -25,17 +25,15 @@ export default async function EditBudgetPage({ params }: { params: Promise<{ opp
   const back = `/comercial/oportunidades/${opportunity.id}/orcamento`;
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <AppLink href={back} className="text-sm text-slate-600 hover:text-slate-900">
-        ← Orçamento interno
-      </AppLink>
-      <h1 className="mt-2 text-2xl font-semibold text-slate-900">{budget ? "Editar orçamento" : "Montar orçamento"}</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        {opportunity.title} · {client.name}
-      </p>
+    <div className="max-w-3xl">
+      <PageHeader
+        back={{ href: back, label: "Orçamento interno" }}
+        title={budget ? "Editar orçamento" : "Montar orçamento"}
+        description={`${opportunity.title} · ${client.name}`}
+      />
 
       {blockedReason ? (
-        <p role="status" className="mt-4 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">
+        <p role="status" className="mt-4 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700">
           {blockedReason}
         </p>
       ) : (
